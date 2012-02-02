@@ -1,0 +1,30 @@
+<!--
+    php-section-comment
+        Insert an easy-to-spot comment to separate out different sections
+        of your class
+
+    HOW TO USE
+        In your PHP class, simply type the following:
+
+            php-section-comment<TAB>
+
+        Sublime Text will add the comment for you.  Then use <TAB> to
+        fill out the details for your section comment
+
+-->
+<snippet>
+    <content><![CDATA[
+// ==================================================================
+//
+// ${1:[ Section description goes here ... ]}
+//
+// ------------------------------------------------------------------
+
+]]></content>
+    <!-- Optional: Tab trigger to activate the snippet -->
+    <tabTrigger>php-section-comment</tabTrigger>
+    <!-- Optional: Scope the tab trigger will be active in -->
+    <scope>source.php</scope>
+    <!-- Optional: Description to show in the menu -->
+    <description>Insert a comment block at the start of a new section in your PHP class</description>
+</snippet>
