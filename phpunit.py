@@ -152,9 +152,9 @@ class PhpunitBase(sublime_plugin.TextCommand):
         return self.findFolderContainingFile(dir_name, 'phpunit.xml.dist')
 
     def findFolderContainingFile(self, path, filename):
-        if (path == ''):
+        if path == '/':
             return None
-        if (os.path.exists(path + '/' + filename)):
+        if os.path.exists(path + '/' + filename):
             return path
 
         return self.findFolderContainingFile(os.path.dirname(path), filename)
@@ -182,7 +182,7 @@ class PhpunitTestThisClass(PhpunitBase):
             sublime.status_message('Unable to find phpunit.xml or phpunit.xml.dist')
         else:
             self.show_empty_output()
-            self.start_async("Running all tests", "cd '" + dir_to_cd + "' && phpunit '" + file_to_test + "'")
+            self.start_async("Running all tests in " + dir_to_cd, "cd '" + dir_to_cd + "' && phpunit '" + file_to_test + "'")
 
     def description(self):
         return 'Test This Class...'
@@ -207,7 +207,7 @@ class PhpunitRunTheseTests(PhpunitBase):
             sublime.status_message('Unable to find phpunit.xml or phpunit.xml.dist')
         else:
             self.show_empty_output()
-            self.start_async("Running tests", "cd '" + dir_to_cd + "' && phpunit '" + file_to_test + "'")
+            self.start_async("Running tests from directory " + dir_to_cd, "cd '" + dir_to_cd + "' && phpunit '" + file_to_test + "'")
 
     def description(self):
         return 'Run These Tests...'
