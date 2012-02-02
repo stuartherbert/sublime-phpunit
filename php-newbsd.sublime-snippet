@@ -1,25 +1,14 @@
 <!--
-    php-getset
-        A time-saving device for creating getters & setters in PHP classes
-
-        Based on a snippet originall published by @akrabat:
-        http://akrabat.com/software/sublime-text-2-snippet-for-php-getter-and-setter-generation/
+    php-newbsd
+        Inserts a DocBlock for the NewBSD license.
 
     HOW TO USE
-        In your PHP class, simply type the following:
+        In your PHP class, go to the top of the file, and type
 
-            php-getset<TAB><name of your property without a $ sign>
+            php-newbsd<TAB>
 
-        Sublime Text will add the getter and setter to your class, and
-        name them after your property.
-
-        For example, if your property is called $connection, you would
-        go into your class, and type:
-
-            php-getset<TAB>connection
-
-        and Sublime Text will create getConnection() and setConnection()
-        methods for you.
+        Sublime Text will add the docblock for you. Now use <TAB> to work
+        through the fields you need to complete.
 
 -->
 <snippet>
