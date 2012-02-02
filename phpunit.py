@@ -29,6 +29,7 @@ class AsyncProcess(object):
       else:
         self.proc.stdout.close()
         self.listener.is_running = False
+        self.listener.append_data(self.proc, "\n--- PROCESS COMPLETE ---")
         break
 
   def read_stderr(self):
@@ -182,7 +183,9 @@ class PhpunitTestThisClass(PhpunitBase):
             sublime.status_message('Unable to find phpunit.xml or phpunit.xml.dist')
         else:
             self.show_empty_output()
-            self.start_async("Running all tests in " + dir_to_cd, "cd '" + dir_to_cd + "' && phpunit '" + file_to_test + "'")
+            cmd = "cd '" + dir_to_cd + "' && phpunit '" + file_to_test + "'"
+            self.append_data(self, "$ " + cmd + "\n")
+            self.start_async("Running tests for this class", cmd)
 
     def description(self):
         return 'Test This Class...'
@@ -207,7 +210,9 @@ class PhpunitRunTheseTests(PhpunitBase):
             sublime.status_message('Unable to find phpunit.xml or phpunit.xml.dist')
         else:
             self.show_empty_output()
-            self.start_async("Running tests from directory " + dir_to_cd, "cd '" + dir_to_cd + "' && phpunit '" + file_to_test + "'")
+            cmd = "cd '" + dir_to_cd + "' && phpunit '" + file_to_test + "'"
+            self.append_data(self, "$ " + cmd + "\n")
+            self.start_async("Running tests", cmd)
 
     def description(self):
         return 'Run These Tests...'
@@ -231,7 +236,9 @@ class PhpunitRunAllTestsCommand(PhpunitBase):
             sublime.status_message('Unable to find phpunit.xml or phpunit.xml.dist')
         else:
             self.show_empty_output()
-            self.start_async("Running all tests", "cd '" + dir_to_cd + "' && phpunit")
+            cmd = "cd '" + dir_to_cd + "' && phpunit"
+            self.append_data(self, "$ " + cmd + "\n")
+            self.start_async("Running all tests", cmd)
 
     def description(self):
         return 'Run All Unit Tests...'
