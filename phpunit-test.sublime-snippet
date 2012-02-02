@@ -1,0 +1,34 @@
+<!--
+    phpunit-test
+        A time-saving snippet for adding new tests to your unit test class
+
+    HOW TO USE
+        In your PHP class, simply type the following:
+
+            phpunit-test<TAB><testcase-name>
+
+        Sublime Text will add the new test method to your file, and
+        give the method the name that you choose.
+
+-->
+<snippet>
+    <content><![CDATA[
+public function test${1:[testcase-name]}()
+{
+    // setup your test
+
+    // pre-conditions
+
+    // perform the change
+
+    // test the results
+}
+
+]]></content>
+    <!-- Optional: Tab trigger to activate the snippet -->
+    <tabTrigger>phpunit-test</tabTrigger>
+    <!-- Optional: Scope the tab trigger will be active in -->
+    <scope>source.php</scope>
+    <!-- Optional: Description to show in the menu -->
+    <description>Create a skeleton test method</description>
+</snippet>

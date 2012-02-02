@@ -1,0 +1,37 @@
+<!--
+    phpunit-testsuite
+        A time-saving device for creating skeleton PHPUnit TestCase classes
+
+    HOW TO USE
+        In your PHP class, simply type the following:
+
+            phpunit-testcase<TAB><classname>
+
+        Sublime Text will add the new TestCase class to your file, and
+        give the class the name that you choose.
+
+-->
+<snippet>
+    <content><![CDATA[
+
+class ${1:[ClassName]}Test extends PHPUnit_Framework_TestCase
+{
+    public function setUp()
+    {
+        // your code here
+    }
+
+    public function tearDown()
+    {
+        // your code here
+    }
+}
+
+]]></content>
+    <!-- Optional: Tab trigger to activate the snippet -->
+    <tabTrigger>phpunit-testcase</tabTrigger>
+    <!-- Optional: Scope the tab trigger will be active in -->
+    <scope>source.php</scope>
+    <!-- Optional: Description to show in the menu -->
+    <description>Create a skeleton TestCase class</description>
+</snippet>
