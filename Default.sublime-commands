@@ -1,5 +1,6 @@
 [
     { "command": "phpunit_test_this_class" },
+    { "command": "phpunit_run_these_tests" },
     { "command": "phpunit_run_all_tests" },
     { "command": "phpunit_show_output" }
 ]

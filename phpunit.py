@@ -84,6 +84,7 @@ class OutputView(object):
             self.output_view = self.window().get_output_panel(self.output_name)
 
     def clear_output_view(self):
+        self.ensure_output_view()
         self.output_view.set_read_only(False)
         edit = self.output_view.begin_edit()
         self.output_view.erase(edit, sublime.Region(0, self.output_view.size()))
@@ -113,9 +114,22 @@ class PhpunitBase(sublime_plugin.TextCommand):
 
         self.output_view.show_output()
 
+    def show_empty_output(self):
+        if not hasattr(self, 'output_view'):
+            self.output_view = OutputView('phpunit', self.view)
+
+        self.output_view.clear_output_view()
+        self.output_view.show_output()
+
     def is_php_buffer(self):
         # is this a PHP buffer?
         if re.search('.+\PHP.tmLanguage', self.view.settings().get('syntax')):
+            return True
+        return False
+
+    def is_test_buffer(self):
+        filename = os.path.splitext(os.path.basename(self.view.file_name()))[0]
+        if filename.endswith('Test'):
             return True
         return False
 
@@ -145,26 +159,78 @@ class PhpunitBase(sublime_plugin.TextCommand):
 
         return self.findFolderContainingFile(os.path.dirname(path), filename)
 
+    def determineClassToTest(self):
+        class_to_test = os.path.splitext(os.path.basename(self.view.file_name()))[0]
+        if not class_to_test.endswith('Test'):
+            class_to_test = class_to_test + "Test"
+
+        return class_to_test
+
+    def determineTestFile(self):
+        filename = os.path.splitext(os.path.basename(self.view.file_name()))[0]
+        if filename.endswith('Test'):
+            return self.view.file_name()
+
+        return None
+
 class PhpunitTestThisClass(PhpunitBase):
     def run(self, args):
-        self.show_output()
+        dir_to_cd = self.findPhpunitXml()
+        file_to_test = self.determineTestFile()
+
+        if (dir_to_cd is None):
+            sublime.status_message('Unable to find phpunit.xml or phpunit.xml.dist')
+        else:
+            self.show_empty_output()
+            self.start_async("Running all tests", "cd '" + dir_to_cd + "' && phpunit '" + file_to_test + "'")
 
     def description(self):
         return 'Test This Class...'
 
     def is_enabled(self):
-        return self.is_php_buffer()
+        if not self.is_php_buffer():
+            return False
+        if self.is_test_buffer():
+            return False
+        # for now, disable this command until it works
+        return False
 
     def is_visible(self):
-        return self.is_php_buffer()
+        return self.is_enabled()
+
+class PhpunitRunTheseTests(PhpunitBase):
+    def run(self, args):
+        dir_to_cd = self.findPhpunitXml()
+        file_to_test = self.determineTestFile()
+
+        if (dir_to_cd is None):
+            sublime.status_message('Unable to find phpunit.xml or phpunit.xml.dist')
+        else:
+            self.show_empty_output()
+            self.start_async("Running tests", "cd '" + dir_to_cd + "' && phpunit '" + file_to_test + "'")
+
+    def description(self):
+        return 'Run These Tests...'
+
+    def is_enabled(self):
+        if not self.is_php_buffer():
+            return False
+
+        if not self.is_test_buffer():
+            return False
+
+        return True
+
+    def is_visible(self):
+        return self.is_enabled()
 
 class PhpunitRunAllTestsCommand(PhpunitBase):
     def run(self, args):
-        self.show_output()
         dir_to_cd = self.findPhpunitXml()
         if (dir_to_cd is None):
             sublime.status_message('Unable to find phpunit.xml or phpunit.xml.dist')
         else:
+            self.show_empty_output()
             self.start_async("Running all tests", "cd '" + dir_to_cd + "' && phpunit")
 
     def description(self):
