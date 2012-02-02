@@ -26,24 +26,24 @@
     <content><![CDATA[
 
 /**
- * [get${1/(.*)/\u$1/} description here]
+ * [get${1/(.*)/\u$1/:[ Prop name ]}() description here]
  *
  * @return [type] [description]
  */
-public function get${1/(.*)/\u$1/}()
+public function get${1/(.*)/\u$1/:[ Prop name ]}()
 {
-    return \$this->\$${1};
+    return \$this->\$${1:[ Prop name ]};
 }
 
 /**
- * [set${1/(.*)/\u$1/} description here]
+ * [set${1/(.*)/\u$1/:[ Prop name ]}() description here]
  *
- * @param  \$$1 [description]
+ * @param  \$${1:[ Prop name ]} [description]
  * @return [class type]    \$this
  */
-public function set${1/(.*)/\u$1/}(\$new${1/(.*)/\u$1/})
+public function set${1/(.*)/\u$1/:[ Prop name ]}(\$new${1/(.*)/\u$1/:[ Prop name ]})
 {
-    \$this->\$$1 = \$new${1/(.*)/\u$1/};
+    \$this->\$${1:[Prop name ]} = \$new${1/(.*)/\u$1/:[ Prop name ]};
     return \$this;
 }
 ]]></content>
