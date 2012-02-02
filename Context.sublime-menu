@@ -1,0 +1,13 @@
+[
+    { "caption": "-" },
+    {
+        "caption": "PHPUnit",
+        "children":
+        [
+            { "command": "phpunit_not_available" },
+            { "command": "phpunit_test_this_class" },
+            { "command": "phpunit_run_all_tests" },
+            { "command": "phpunit_show_output" }
+        ]
+    }
+]
