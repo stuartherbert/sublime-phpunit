@@ -1,0 +1,56 @@
+<!--
+    php-getset
+        A time-saving device for creating getters & setters in PHP classes
+
+        Based on a snippet originall published by @akrabat:
+        http://akrabat.com/software/sublime-text-2-snippet-for-php-getter-and-setter-generation/
+
+    HOW TO USE
+        In your PHP class, simply type the following:
+
+            php-getset<TAB><name of your property without a $ sign>
+
+        Sublime Text will add the getter and setter to your class, and
+        name them after your property.
+
+        For example, if your property is called $connection, you would
+        go into your class, and type:
+
+            php-getset<TAB>connection
+
+        and Sublime Text will create getConnection() and setConnection()
+        methods for you.
+
+-->
+<snippet>
+    <content><![CDATA[
+
+/**
+ * [get${1/(.*)/\u$1/} description here]
+ *
+ * @return [type] [description]
+ */
+public function get${1/(.*)/\u$1/}()
+{
+    return \$this->\$${1};
+}
+
+/**
+ * [set${1/(.*)/\u$1/} description here]
+ *
+ * @param  \$$1 [description]
+ * @return [class type]    \$this
+ */
+public function set${1/(.*)/\u$1/}(\$new${1/(.*)/\u$1/})
+{
+    \$this->\$$1 = \$new${1/(.*)/\u$1/};
+    return \$this;
+}
+]]></content>
+    <!-- Optional: Tab trigger to activate the snippet -->
+    <tabTrigger>php-getset</tabTrigger>
+    <!-- Optional: Scope the tab trigger will be active in -->
+    <scope>source.php</scope>
+    <!-- Optional: Description to show in the menu -->
+    <description>Create getter and setter methods</description>
+</snippet>
