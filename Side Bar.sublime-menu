@@ -4,7 +4,7 @@
         "caption": "PHPUnit",
         "children":
         [
-	        { "command": "run_phpunit_on_xml", "args": {"paths": [] } },
+            { "command": "run_phpunit_on_xml", "args": {"paths": [] } },
             { "command": "run_phpunit_on_these_tests", "args": { "paths": [] } },
             { "command": "run_phpunit_tests_for_this_class", "args": { "paths": [] } },
             { "command": "run_phpunit_tests", "args": { "paths": [] } },
