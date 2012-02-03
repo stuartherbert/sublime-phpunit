@@ -218,6 +218,12 @@ class ActiveWindow(ActiveFile):
 
         self._file_name = filename
 
+    def is_php_buffer(self):
+        ext = os.path.splitext(self.file_name())[1]
+        if ext == 'php':
+            return True
+        return False
+
 class PhpunitTextBase(sublime_plugin.TextCommand, ActiveView):
     def run(self, args):
         print 'Not implemented'
