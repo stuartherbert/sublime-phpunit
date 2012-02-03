@@ -35,6 +35,8 @@ To use any of the snippets, simply type the name of the snippet, then press the 
 * __php-getset__: create getter/setter methods quickly and easily (based on a snippet originally published by @akrabat)
 * __php-newbsd__: insert the new BSD license as a PHP docblock
 * __php-section-comment__: insert a prominent comment to help break up the sections of your class
+* __phpunit-test__: create a new test method inside your TestCase class
+* __phpunit-testcase__: create a new TestCase class to put your tests inside
 
 Contributions Welcome
 ---------------------
