@@ -1,0 +1,14 @@
+[
+    {
+        "id": "tools",
+        "caption": "Tools",
+        "children":
+        [
+            {
+                "caption": "PHPUnit...",
+                "command": "show_overlay",
+                "args": {"overlay": "command_palette", "text": "PHPUnit: " }
+            }
+        ]
+    }
+]
