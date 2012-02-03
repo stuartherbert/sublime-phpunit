@@ -335,8 +335,8 @@ class RunPhpunitOnXmlCommand(PhpunitWindowBase):
         return 'Run PHPUnit Tests...'
 
 class RunPhpunitOnTheseTestsCommand(PhpunitWindowBase):
-    def run(self, args=[]):
-        self.determine_filename(args)
+    def run(self, paths=[]):
+        self.determine_filename(paths)
         dir_to_cd = self.findPhpunitXml()
         file_to_test = self.determineTestFile()
 
