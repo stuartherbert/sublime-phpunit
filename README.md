@@ -3,6 +3,11 @@ Sublime PHP
 
 This is a collection of (hopefully) useful extras for writing PHP code using the excellent Sublime Text 2 editor.
 
+Installation
+------------
+
+We're waiting to be added to [Package Control](http://wbond.net/sublime_packages/package_control), so for now you'll need to clone this repo into your Sublime Text 2 "Packages/" folder.
+
 PHPUnit Support For Sublime Text 2
 ----------------------------------
 
