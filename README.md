@@ -15,9 +15,11 @@ This plugin adds support for running PHPUnit tests from inside Sublime Text 2.
 
 Right-click in the editor to:
 
-* Run all unit tests (available in all PHP files)
-* Run the unit tests in the current file (only available in *Test.php files)
-* Run PHPUnit, using the current XML config file (available inside the XML config file)
+* Run all unit tests
+* Run the unit tests for the current file
+* Run the unit tests in the current file
+* Run PHPUnit, using the current XML config file
+* Goto the file containing the tests or the file being tested
 
 Right-click in the side-bar to:
 

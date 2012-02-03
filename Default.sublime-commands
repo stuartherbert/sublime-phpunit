@@ -1,14 +1,26 @@
 [
     {
+        "caption": "PHPUnit: Test This Class",
+        "command": "phpunit_test_this_class"
+    },
+    {
+        "caption": "PHPUnit: Open Test Class",
+        "command": "phpunit_open_test_class"
+    },
+    {
         "caption": "PHPUnit: Run Using This XML File",
-        "command": "run_phpunit_on_xml"
+        "command": "phpunit_run_this_phpunit_xml"
     },
     {
         "caption": "PHPUnit: Run These Tests",
-        "command": "run_phpunit_on_these_tests"
+        "command": "phpunit_run_these_tests"
+    },
+    {
+        "caption": "PHPUnit: Open Class Being Tested",
+        "command": "phpunit_open_class_being_tested"
     },
     {
         "caption": "PHPUnit: Run All Tests",
-        "command": "run_phpunit_tests"
+        "command": "phpunit_run_all_tests"
     }
 ]

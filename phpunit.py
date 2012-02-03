@@ -133,13 +133,15 @@ class CommandBase:
         sublime.status_message(msg + " " + progress)
 
 class PhpunitCommand(CommandBase):
-    def run(self, path, args=''):
+    def run(self, path, testfile='', classname=''):
         self.show_empty_output()
         cmd = "cd '" + path[0] + "' && phpunit"
         if len(path) > 0:
             cmd = cmd + " -c '" + path[1] + "' "
-        if args != '':
-            cmd = cmd + " '" + args + "'"
+        if testfile != '':
+            cmd = cmd + " '" + testfile + "'"
+        if classname != '':
+            cmd = cmd + " '" + classname + "'"
         self.append_data(self, "$ " + cmd + "\n")
         self.start_async("Running PHPUnit", cmd)
 
@@ -186,6 +188,61 @@ class ActiveFile:
 
         return self.findFolderContainingFile(os.path.dirname(path), filename)
 
+    def resetSearchedFolders(self):
+        self.searchedFolders = {}
+
+    def findFileFor(self, path, suffix, depth):
+        if depth == 0:
+            return None
+        if path == '/':
+            return None
+        # optimisation - avoid looking in the same place twice
+        pathToSearch = path + '/'
+        filenameToTest = pathToSearch + suffix
+        # print "Looking for " + filenameToTest
+        if os.path.exists(filenameToTest):
+            return filenameToTest
+        found_path = self.searchSubfoldersFor(path, suffix)
+        if found_path is not None:
+            return found_path
+        # avoid looking in here again
+        self.searchedFolders[pathToSearch] = True
+        depth = depth - 1
+        return self.findFileFor(os.path.dirname(path), suffix, depth)
+
+    def searchSubfoldersFor(self, path, suffix):
+        # print "searchSubfoldersFor: " + path + ' ' + suffix
+        for root, dirs, names in os.walk(path):
+            for subdir in dirs:
+                # print "looking at dir " + subdir
+                # optimisation - avoid looking in hidden places
+                if subdir[0] == '.':
+                    # print "skipping hidden folder " + subdir
+                    continue
+                # optimisation - avoid looking down dead ends
+                frontToTest = subdir + '/'
+                if suffix[:len(frontToTest)] == frontToTest:
+                    # print "skipping matching prefix " + frontToTest
+                    continue
+                # optimisation - avoid looking in the same place twice
+                pathToSearch = path + '/' + subdir + '/'
+                if pathToSearch in self.searchedFolders:
+                    # print "Skipping " + pathToSearch
+                    continue
+                self.searchedFolders[pathToSearch] = True
+                # if we get here, we have not discarded this folder yet
+                filenameToTest = pathToSearch + suffix
+                # print "Looking in subfolders for " + filenameToTest
+                if os.path.exists(filenameToTest):
+                    # print "Found " + filenameToTest
+                    return filenameToTest
+                found_path = self.searchSubfoldersFor(path + '/' + subdir, suffix)
+                if found_path is not None:
+                    # print "Found path!!"
+                    return found_path
+                # print "Run out of options"
+        return None
+
     def cannot_find_xml(self):
         sublime.status_message("Cannot find phpunit.xml or phpunit.xml.dist file")
 
@@ -201,6 +258,58 @@ class ActiveView(ActiveFile):
 
     def file_name(self):
         return self.view.file_name()
+
+    def find_tested_file(self):
+        classname = self.determine_full_class_name()
+        path_to_search = self.file_name().replace('/' + classname + '.php', '')
+        if classname[-4:] == 'Test':
+            classname = classname[:-4]
+        classname = classname + '.php'
+        depth_to_search = 4
+        self.resetSearchedFolders()
+        path = self.findFileFor(path_to_search, classname, depth_to_search)
+        if path is None:
+            return None
+
+        return [ path, classname ]
+
+    def find_test_file(self):
+        classname = self.determine_full_class_name()
+        depth_to_search = 3
+        path_to_search = self.file_name().replace('/' + classname + '.php', '')
+        self.resetSearchedFolders()
+        path = self.findFileFor(path_to_search, classname + 'Test.php', depth_to_search)
+        if path is None:
+            return None
+
+        return [ path, classname ]
+
+    def determine_full_class_name(self):
+        namespace = self.extract_namespace()
+        classname = self.extract_classname()
+        path = ''
+        if len(namespace) > 0:
+            namespace = namespace.replace('\\', '/')
+            path = path + namespace + '/'
+        classname = classname.replace('_', '/')
+        path = path + classname
+        return path
+
+    def extract_namespace(self):
+        namespaces = self.view.find_all("^namespace ([A-Za-z0-9_\\\]+);")
+        if namespaces is None or len(namespaces) == 0:
+            return ''
+        for namespace in namespaces:
+            line = self.view.substr(namespace)
+            return line[10:-1]
+
+    def extract_classname(self):
+        classes = self.view.find_all("^class [A-Za-z0-9_]+")
+        if classes is None or len(classes) == 0:
+            return None
+        for classname in classes:
+            line = self.view.substr(classname)
+            return line[6:]
 
 class ActiveWindow(ActiveFile):
     def file_name(self):
@@ -235,9 +344,13 @@ class PhpunitTestThisClass(PhpunitTextBase):
             self.cannot_find_xml()
             return
 
-        file_to_test = self.determineTestFile()
+        file_to_test = self.find_test_file()
+        if file_to_test is None:
+            self.cannot_find_test_file()
+            return
+
         cmd = PhpunitCommand(self.view.window())
-        cmd.run(path, file_to_test)
+        cmd.run(path, file_to_test[0], file_to_test[1])
 
     def description(self):
         return 'Test This Class...'
@@ -250,11 +363,78 @@ class PhpunitTestThisClass(PhpunitTextBase):
         path = self.findPhpunitXml()
         if path is None:
             return False
-        # for now, disable this command until it works
-        return False
+        path = self.find_test_file()
+        if path is None:
+            return False
+        return True
 
     def is_visible(self):
-        return self.is_enabled()
+        if not self.is_php_buffer():
+            return False
+        if self.is_test_buffer():
+            return False
+        path = self.findPhpunitXml()
+        if path is None:
+            return False
+        return True
+
+class PhpunitOpenTestClass(PhpunitTextBase):
+    def run(self, args):
+        file_to_open = self.find_test_file()
+        if file_to_open is None:
+            self.cannot_find_test_file()
+            return
+
+        self.view.window().open_file(file_to_open[0])
+
+    def description(self):
+        return 'Open Test Class'
+
+    def is_enabled(self):
+        if not self.is_php_buffer():
+            return False
+        if self.is_test_buffer():
+            return False
+        path = self.find_test_file()
+        if path is None:
+            return False
+        return True
+
+    def is_visible(self):
+        if not self.is_php_buffer():
+            return False
+        if self.is_test_buffer():
+            return False
+        return True
+
+class PhpunitOpenClassBeingTested(PhpunitTextBase):
+    def run(self, args):
+        file_to_open = self.find_tested_file()
+        if file_to_open is None:
+            self.cannot_find_tested_file()
+            return
+
+        self.view.window().open_file(file_to_open[0])
+
+    def description(self):
+        return 'Open Class Being Tested'
+
+    def is_enabled(self):
+        if not self.is_php_buffer():
+            return False
+        if not self.is_test_buffer():
+            return False
+        path = self.find_tested_file()
+        if path is None:
+            return False
+        return True
+
+    def is_visible(self):
+        if not self.is_php_buffer():
+            return False
+        if not self.is_test_buffer():
+            return False
+        return True
 
 class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
     def run(self, args):
@@ -359,36 +539,6 @@ class RunPhpunitOnXmlCommand(PhpunitWindowBase):
 
     def description(self, paths=[]):
         return 'Run Using This XML File...'
-
-class RunPhpunitTestsForThisClassCommand(PhpunitWindowBase):
-    def run(self, paths=[]):
-        self.determine_filename(paths)
-        path = self.findPhpunitXml()
-        if path is None:
-            self.cannot_find_xml()
-            return
-
-        file_to_test = self.determineTestFile()
-        cmd = PhpunitCommand(self.window.active_view().window())
-        cmd.run(path, file_to_test)
-
-    def is_enabled(self, paths=[]):
-        return self.is_visible(paths)
-
-    def is_visible(self, paths=[]):
-        self.determine_filename(paths)
-        if not self.is_php_buffer():
-            return False
-        if self.is_test_buffer():
-            return False
-        path = self.findPhpunitXml()
-        if path is None:
-            return False
-        # disable for now
-        return False
-
-    def description(self, paths=[]):
-        return 'Run These Tests...'
 
 class RunPhpunitOnTheseTestsCommand(PhpunitWindowBase):
     def run(self, paths=[]):
