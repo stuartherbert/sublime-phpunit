@@ -13,14 +13,22 @@ PHPUnit Support For Sublime Text 2
 
 This plugin adds support for running PHPUnit tests from inside Sublime Text 2.
 
-We add right-click menu options to:
+Right-click in the editor to:
 
 * Run all unit tests (available in all PHP files)
 * Run the unit tests in the current file (only available in *Test.php files)
+* Run PHPUnit, using the current XML config file (available inside the XML config file)
 
-To make this work, you need to create a phpunit.xml.dist or phpunit.xml file in the top-level folder of your code (projects using [Phix](http://phix-project.org) get this for free).
+Right-click in the side-bar to:
 
-You can also right-click on any phpunit.xml or phpunit.xml.dist file in your sidebar to use it to run PHPUnit.
+* Run the unit tests in the current file
+* Run all the unit tests
+* Run PHPUnit, using the selected XML config file
+
+You can also open up the Command Palette (CTRL + SHIFT + P on Linux), and type
+'PHPUnit' to see what you can do with PHPUnit in the currently open file.
+
+To make this work, you need to create a phpunit.xml.dist or phpunit.xml file for your code (projects using [Phix](http://phix-project.org) get this for free).  The Sublime-PHP plugin searches the folders upwards from whatever you are trying to test, using the first phpunit.xml or phpunit.xml.dist that it finds.  Make sure that your phpunit.xml file is either at the top of your tests folder (or even further up), and this plugin will work for you.
 
 _PHPUnit support is based on the [Ruby Tests plugin](https://github.com/maltize/sublime-text-2-ruby-tests)_
 

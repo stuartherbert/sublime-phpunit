@@ -1,10 +1,14 @@
 [
     {
-        "caption": "PHPUnit: Run On This phpunit.xml File",
+        "caption": "PHPUnit: Run Using This XML File",
         "command": "run_phpunit_on_xml"
     },
     {
         "caption": "PHPUnit: Run These Tests",
         "command": "run_phpunit_on_these_tests"
+    },
+    {
+        "caption": "PHPUnit: Run All Tests",
+        "command": "run_phpunit_tests"
     }
 ]
