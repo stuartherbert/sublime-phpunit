@@ -1,3 +1,3 @@
 [
-	{ "command": "phpunit_run_phpunitxml", "args": {"paths": []} }
+	{ "command": "run_phpunit_on_xml", "args": {"paths": []} }
 ]

@@ -1,6 +1,10 @@
 [
-    { "command": "phpunit_test_this_class" },
-    { "command": "phpunit_run_these_tests" },
-    { "command": "phpunit_run_all_tests" },
-    { "command": "phpunit_show_output" }
+    {
+        "caption": "PHPUnit: Run On This phpunit.xml File",
+        "command": "run_phpunit_on_xml"
+    },
+    {
+        "caption": "PHPUnit: Run These Tests",
+        "command": "run_phpunit_on_these_tests"
+    }
 ]
