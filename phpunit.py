@@ -64,16 +64,13 @@ class StatusProcess(object):
         break
 
 class OutputView(object):
-    def __init__(self, name, view):
+    def __init__(self, name, window):
         self.output_name = name
-        self.view = view
-
-    def window(self):
-        return self.view.window()
+        self.window = window
 
     def show_output(self):
         self.ensure_output_view()
-        self.window().run_command("show_panel", {"panel": "output." + self.output_name})
+        self.window.run_command("show_panel", {"panel": "output." + self.output_name})
 
     def show_empty_output(self):
         self.ensure_output_view()
@@ -82,7 +79,7 @@ class OutputView(object):
 
     def ensure_output_view(self):
         if not hasattr(self, 'output_view'):
-            self.output_view = self.window().get_output_panel(self.output_name)
+            self.output_view = self.window.get_output_panel(self.output_name)
 
     def clear_output_view(self):
         self.ensure_output_view()
@@ -107,17 +104,16 @@ class OutputView(object):
         self.output_view.end_edit(edit)
         self.output_view.set_read_only(True)
 
-
-class PhpunitBase(sublime_plugin.TextCommand):
+class PhpunitTextBase(sublime_plugin.TextCommand):
     def show_output(self):
         if not hasattr(self, 'output_view'):
-            self.output_view = OutputView('phpunit', self.view)
+            self.output_view = OutputView('phpunit', self.view.window())
 
         self.output_view.show_output()
 
     def show_empty_output(self):
         if not hasattr(self, 'output_view'):
-            self.output_view = OutputView('phpunit', self.view)
+            self.output_view = OutputView('phpunit', self.view.window())
 
         self.output_view.clear_output_view()
         self.output_view.show_output()
@@ -174,7 +170,7 @@ class PhpunitBase(sublime_plugin.TextCommand):
 
         return None
 
-class PhpunitTestThisClass(PhpunitBase):
+class PhpunitTestThisClass(PhpunitTextBase):
     def run(self, args):
         dir_to_cd = self.findPhpunitXml()
         file_to_test = self.determineTestFile()
@@ -201,7 +197,7 @@ class PhpunitTestThisClass(PhpunitBase):
     def is_visible(self):
         return self.is_enabled()
 
-class PhpunitRunTheseTests(PhpunitBase):
+class PhpunitRunTheseTests(PhpunitTextBase):
     def run(self, args):
         dir_to_cd = self.findPhpunitXml()
         file_to_test = self.determineTestFile()
@@ -229,7 +225,7 @@ class PhpunitRunTheseTests(PhpunitBase):
     def is_visible(self):
         return self.is_enabled()
 
-class PhpunitRunAllTestsCommand(PhpunitBase):
+class PhpunitRunAllTestsCommand(PhpunitTextBase):
     def run(self, args):
         dir_to_cd = self.findPhpunitXml()
         if (dir_to_cd is None):
@@ -249,14 +245,14 @@ class PhpunitRunAllTestsCommand(PhpunitBase):
     def is_visible(self):
         return self.is_enabled()
 
-class PhpunitShowOutputCommand(PhpunitBase):
+class PhpunitShowOutputCommand(PhpunitTextBase):
     def run(self, args):
         self.show_output()
 
     def description(self):
         return 'Show Test Output...'
 
-class PhpunitNotAvailableCommand(PhpunitBase):
+class PhpunitNotAvailableCommand(PhpunitTextBase):
     def is_visible(self):
         if not self.is_php_buffer():
             return True
@@ -267,3 +263,58 @@ class PhpunitNotAvailableCommand(PhpunitBase):
 
     def description(self):
         return 'PHPUnit tests can only be run on PHP windows'
+
+class PhpunitWindowBase(sublime_plugin.WindowCommand):
+    def show_output(self):
+        if not hasattr(self, 'output_view'):
+            self.output_view = OutputView('phpunit', self.window)
+
+        self.output_view.show_output()
+
+    def show_empty_output(self):
+        if not hasattr(self, 'output_view'):
+            self.output_view = OutputView('phpunit', self.window)
+
+        self.output_view.clear_output_view()
+        self.output_view.show_output()
+
+    def is_phpunitxml(self, fileToTest):
+        # is this a phpunit.xml file?
+        filename = os.path.basename(fileToTest)
+        if filename == 'phpunit.xml' or filename == 'phpunit.xml.dist':
+            return True
+        return False
+
+    def is_test_file(self, file):
+        filename = os.path.splitext(os.path.basename(self.view.file_name()))[0]
+        if filename.endswith('Test'):
+            return True
+        return False
+
+    def start_async(self, caption, executable):
+        self.is_running = True
+        self.proc = AsyncProcess(executable, self)
+        StatusProcess(caption, self)
+
+    def append_data(self, proc, data):
+        self.output_view.append_data(proc, data)
+
+    def update_status(self, msg, progress):
+        sublime.status_message(msg + " " + progress)
+
+class PhpunitRunPhpunitxmlCommand(PhpunitWindowBase):
+    def run(self, paths=[]):
+        dir_to_cd = os.path.dirname(paths[0])
+        self.show_empty_output()
+        cmd = "cd '" + dir_to_cd + "' && phpunit"
+        self.append_data(self, "$ " + cmd + "\n")
+        self.start_async("Running phpunit", cmd)
+
+    def is_enabled(self, paths=[]):
+        return self.is_visible(paths)
+
+    def is_visible(self, paths=[]):
+        return self.is_phpunitxml(paths[0])
+
+    def description(self, paths=[]):
+        return 'Run PHPUnit Tests...'
