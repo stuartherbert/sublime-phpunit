@@ -1,7 +1,7 @@
-Sublime PHP
-===========
+Sublime PHPUnit
+===============
 
-This is a collection of (hopefully) useful extras for writing PHP code using the excellent Sublime Text 2 editor.
+This plugin adds PHPUnit support to Sublime Text 2.
 
 Installation
 ------------
@@ -35,14 +35,10 @@ _PHPUnit support is based on the [Ruby Tests plugin](https://github.com/maltize/
 Snippets
 --------
 
-We add the following snippets to speed up writing PHP code.
+We add the following snippets to speed up writing PHP test code.
 
 To use any of the snippets, simply type the name of the snippet, then press the <TAB> key.  Sublime Text 2 will insert the snippet, and you can then use the <TAB> key to move through any placeholders that you need to replace.
 
-* __license-newbsd__: insert the new BSD license (eg into LICENSE.md-type files)
-* __php-getset__: create getter/setter methods quickly and easily (based on a snippet originally published by @akrabat)
-* __php-newbsd__: insert the new BSD license as a PHP docblock
-* __php-section-comment__: insert a prominent comment to help break up the sections of your class
 * __phpunit-test__: create a new test method inside your TestCase class
 * __phpunit-testcase__: create a new TestCase class to put your tests inside
 
