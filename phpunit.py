@@ -256,7 +256,7 @@ class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
 
 class PhpunitRunTheseTestsCommand(PhpunitTextBase):
     def run(self, args):
-        dir_to_cd = self.findPhpunitXml(self.file_name())
+        dir_to_cd = self.findPhpunitXml()
         file_to_test = self.determineTestFile()
 
         if (dir_to_cd is None):
