@@ -1,0 +1,53 @@
+<!--
+    phpunit-test-with-data
+        A time-saving snippet for adding new tests with a data provider to your unit test class
+
+    HOW TO USE
+        In your PHP class, simply type the following:
+
+            phpunit-test-with-data<TAB><testcase-name>
+
+        Sublime Text will add the new test method to your file, and
+        give the method the name that you choose.
+
+-->
+<snippet>
+    <content><![CDATA[
+/**
+ * ${3:[testcase-description]}
+ *
+ * @dataProvider ${1:[dataProviderMethod]}
+ *
+ * @return void
+ */
+public function test${2:[testcase-name]}()
+{
+    // setup your test
+
+    // pre-conditions
+
+    // perform the change
+
+    // test the results
+}
+
+/**
+ * Data Provider for test$2
+ *
+ * @return array
+ */
+public function ${1:[dataProviderMethod]}()
+{
+    return array(
+        array()
+    );
+}
+
+]]></content>
+    <!-- Optional: Tab trigger to activate the snippet -->
+    <tabTrigger>phpunit-test-with-data</tabTrigger>
+    <!-- Optional: Scope the tab trigger will be active in -->
+    <scope>source.php</scope>
+    <!-- Optional: Description to show in the menu -->
+    <description>Create a skeleton test method with a data provider</description>
+</snippet>
