@@ -15,13 +15,20 @@
     <content><![CDATA[
 public function test${1:[testcase-name]}()
 {
+    // ----------------------------------------------------------------
     // setup your test
+    //
+    // explain your test setup here if needed ...
 
-    // pre-conditions
-
+    // ----------------------------------------------------------------
     // perform the change
+    //
+    // explain your test here if needed ...
 
+    // ----------------------------------------------------------------
     // test the results
+    //
+    // explain what you expect to have happened
 }
 
 ]]></content>
