@@ -1,3 +1,4 @@
+import datetime
 import functools
 import os
 import re
@@ -152,6 +153,10 @@ class PhpunitCommand(CommandBase):
 
 
 class ActiveFile:
+    searched_folders = {}
+    search_results_cache = {}
+    last_search_time = None
+
     def is_test_buffer(self):
         filename = os.path.splitext(os.path.basename(self.file_name()))[0]
         if filename.endswith('Test'):
@@ -180,18 +185,22 @@ class ActiveFile:
         return None
 
     def findPhpunitXml(self, folders={}):
-        self.resetSearchedFolders()
         dir_name = os.path.dirname(self.file_name())
-        path = self.findFileFor(folders, '', dir_name, 'phpunit.xml', 3)
-        if path is not None:
-            return [os.path.dirname(path), os.path.basename(path)]
-        path = self.findFileFor(folders, '', dir_name, 'phpunit.xml.dist', 3)
-        if path is not None:
-            return [os.path.dirname(path), os.path.basename(path)]
+
+        files_to_find = ['phpunit.xml', 'phpunit.xml.dist']
+        for file_to_find in files_to_find:
+            result = self.findFileFor(folders, dir_name, file_to_find)
+            if result is not None:
+                return [os.path.dirname(result), os.path.basename(result)]
         return None
 
-    def resetSearchedFolders(self):
-        self.searchedFolders = {}
+    def expireSearchResultsCache(self):
+        now = datetime.datetime.now()
+        if ActiveFile.last_search_time is not None:
+            since = ActiveFile.last_search_time + datetime.timedelta(seconds=2)
+        if ActiveFile.last_search_time is None or now > since:
+            ActiveFile.last_search_time = now
+            ActiveFile.search_results_cache = {}
 
     def reachedTopLevelFolder(self, folders, oldpath, path):
         if oldpath == path:
@@ -204,61 +213,66 @@ class ActiveFile:
     def findFolderContainingFile(self, folders, oldpath, path, filename):
         if self.reachedTopLevelFolder(folders, oldpath, path):
             return None
-        if os.path.exists(path + '/' + filename):
+        if os.path.exists(os.path.join(path, filename)):
             return [path, filename]
 
         return self.findFolderContainingFile(folders, path, os.path.dirname(path), filename)
 
-    def findFileFor(self, folders, oldpath, path, suffix, depth):
+    def findFileFor(self, folders, path, suffix):
+        self.expireSearchResultsCache()
+        ActiveFile.searched_folders = {}
+        print "------------------------ SEARCH STARTS HERE ---------------------"
+
+        if suffix in ActiveFile.search_results_cache:
+            return ActiveFile.search_results_cache[suffix]
+
+        path = self._findFileFor(folders, '', path, suffix, 3)
+        ActiveFile.search_results_cache[suffix] = path
+        return path
+
+    def _findFileFor(self, folders, oldpath, path, suffix, depth):
         if len(folders) == 0 and depth == 0:
             return None
         if self.reachedTopLevelFolder(folders, oldpath, path):
             return None
         # optimisation - avoid looking in the same place twice
-        pathToSearch = path + '/'
-        filenameToTest = pathToSearch + suffix
+        filenameToTest = os.path.join(path, suffix)
         print "Looking for " + filenameToTest
         if os.path.exists(filenameToTest):
             return filenameToTest
         found_path = self.searchSubfoldersFor(path, suffix)
         if found_path is not None:
             return found_path
-        # avoid looking in here again
-        self.searchedFolders[pathToSearch] = True
         depth = depth - 1
-        return self.findFileFor(folders, path, os.path.dirname(path), suffix, depth)
+        return self._findFileFor(folders, path, os.path.dirname(path), suffix, depth)
 
     def searchSubfoldersFor(self, path, suffix):
-        # print "searchSubfoldersFor: " + path + ' ' + suffix
+        print "searchSubfoldersFor: " + path + ' ' + suffix
+
         for root, dirs, names in os.walk(path):
             for subdir in dirs:
-                # print "looking at dir " + subdir
+                print "looking at dir " + subdir
                 # optimisation - avoid looking in hidden places
                 if subdir[0] == '.':
                     # print "skipping hidden folder " + subdir
                     continue
-                # optimisation - avoid looking down dead ends
-                frontToTest = subdir + '/'
-                if suffix[:len(frontToTest)] == frontToTest:
-                    # print "skipping matching prefix " + frontToTest
-                    continue
                 # optimisation - avoid looking in the same place twice
-                pathToSearch = path + '/' + subdir + '/'
-                if pathToSearch in self.searchedFolders:
-                    # print "Skipping " + pathToSearch
+                pathToSearch = os.path.join(path, subdir)
+                if pathToSearch in ActiveFile.searched_folders:
+                    print "Skipping " + pathToSearch
                     continue
-                self.searchedFolders[pathToSearch] = True
+                ActiveFile.searched_folders[pathToSearch] = True
                 # if we get here, we have not discarded this folder yet
-                filenameToTest = pathToSearch + suffix
-                # print "Looking in subfolders for " + filenameToTest
+                filenameToTest = os.path.join(pathToSearch, suffix)
+                print "Looking in subfolders for " + filenameToTest
                 if os.path.exists(filenameToTest):
-                    # print "Found " + filenameToTest
+                    print "Found " + filenameToTest
                     return filenameToTest
-                found_path = self.searchSubfoldersFor(path + '/' + subdir, suffix)
+                found_path = self.searchSubfoldersFor(pathToSearch, suffix)
                 if found_path is not None:
-                    # print "Found path!!"
+                    print "Found path!!"
                     return found_path
-                # print "Run out of options"
+                print "Run out of options"
         return None
 
     def cannot_find_xml(self):
@@ -284,9 +298,7 @@ class ActiveView(ActiveFile):
         if classname[-4:] == 'Test':
             classname = classname[:-4]
         classname = classname + '.php'
-        depth_to_search = 4
-        self.resetSearchedFolders()
-        path = self.findFileFor(self.view.window().folders(), '', path_to_search, classname, depth_to_search)
+        path = self.findFileFor(self.view.window().folders(), path_to_search, classname)
         if path is None:
             return None
 
@@ -294,10 +306,8 @@ class ActiveView(ActiveFile):
 
     def find_test_file(self):
         classname = self.determine_full_class_name()
-        depth_to_search = 3
         path_to_search = self.file_name().replace('/' + classname + '.php', '')
-        self.resetSearchedFolders()
-        path = self.findFileFor(self.view.window().folders(), '', path_to_search, classname + 'Test.php', depth_to_search)
+        path = self.findFileFor(self.view.window().folders(), path_to_search, classname + 'Test.php')
         if path is None:
             return None
 
