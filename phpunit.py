@@ -182,10 +182,10 @@ class ActiveFile:
     def findPhpunitXml(self, folders={}):
         self.resetSearchedFolders()
         dir_name = os.path.dirname(self.file_name())
-        path = self.findFileFor(folders, '', dir_name, 'phpunit.xml', 5)
+        path = self.findFileFor(folders, '', dir_name, 'phpunit.xml', 3)
         if path is not None:
             return [os.path.dirname(path), os.path.basename(path)]
-        path = self.findFileFor(folders, '', dir_name, 'phpunit.xml.dist', 5)
+        path = self.findFileFor(folders, '', dir_name, 'phpunit.xml.dist', 3)
         if path is not None:
             return [os.path.dirname(path), os.path.basename(path)]
         return None
