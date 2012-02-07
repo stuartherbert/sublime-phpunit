@@ -112,6 +112,10 @@ class OutputView(object):
 class CommandBase:
     def __init__(self, window):
         self.window = window
+        # Load the settings files
+        self.settings_file = '%s.sublime-settings' % __name__
+        self.settings = sublime.load_settings(self.settings_file)
+        self.additional_args = self.settings.get('additional_args', {})
 
     def show_output(self):
         if not hasattr(self, 'output_view'):
@@ -141,13 +145,22 @@ class CommandBase:
 class PhpunitCommand(CommandBase):
     def run(self, path, testfile='', classname=''):
         self.show_empty_output()
+
         cmd = "cd '" + path[0] + "' && phpunit"
+
+        # Add the additional arguments from the settings file to the command
+        for key, value in self.additional_args.items():
+            cmd = cmd + " " + key
+            if value != "":
+                cmd = cmd + "=" + value
+
         if len(path) > 0:
             cmd = cmd + " -c '" + path[1] + "' "
         if testfile != '':
             cmd = cmd + " '" + testfile + "'"
         if classname != '':
             cmd = cmd + " '" + classname + "'"
+
         self.append_data(self, "$ " + cmd + "\n")
         self.start_async("Running PHPUnit", cmd)
 
