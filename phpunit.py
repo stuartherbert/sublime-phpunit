@@ -31,7 +31,6 @@ class AsyncProcess(object):
             else:
                 self.proc.stdout.close()
                 self.listener.is_running = False
-                self.listener.append_data(self.proc, "\n--- PROCESS COMPLETE ---")
                 break
 
     def read_stderr(self):
@@ -42,6 +41,7 @@ class AsyncProcess(object):
             else:
                 self.proc.stderr.close()
                 self.listener.is_running = False
+                self.listener.append_data(self.proc, "\n--- PROCESS COMPLETE ---")
                 break
 
 # the StatusProcess class has been cribbed from:
@@ -206,7 +206,7 @@ class ActiveFile:
         if oldpath == path:
             return True
         for folder in folders:
-            if path == folder:
+            if path == os.path.dirname(folder):
                 return True
         return False
 
@@ -221,7 +221,7 @@ class ActiveFile:
     def findFileFor(self, folders, path, suffix):
         self.expireSearchResultsCache()
         ActiveFile.searched_folders = {}
-        print "------------------------ SEARCH STARTS HERE ---------------------"
+        # print "------------------------ SEARCH STARTS HERE ---------------------"
 
         if suffix in ActiveFile.search_results_cache:
             return ActiveFile.search_results_cache[suffix]
@@ -237,7 +237,7 @@ class ActiveFile:
             return None
         # optimisation - avoid looking in the same place twice
         filenameToTest = os.path.join(path, suffix)
-        print "Looking for " + filenameToTest
+        # print "Looking for " + filenameToTest
         if os.path.exists(filenameToTest):
             return filenameToTest
         found_path = self.searchSubfoldersFor(path, suffix)
@@ -247,32 +247,28 @@ class ActiveFile:
         return self._findFileFor(folders, path, os.path.dirname(path), suffix, depth)
 
     def searchSubfoldersFor(self, path, suffix):
-        print "searchSubfoldersFor: " + path + ' ' + suffix
+        # print "searchSubfoldersFor: " + path + ' ' + suffix
 
         for root, dirs, names in os.walk(path):
             for subdir in dirs:
-                print "looking at dir " + subdir
-                # optimisation - avoid looking in hidden places
-                if subdir[0] == '.':
-                    # print "skipping hidden folder " + subdir
-                    continue
+                # print "looking at dir " + subdir
                 # optimisation - avoid looking in the same place twice
                 pathToSearch = os.path.join(path, subdir)
                 if pathToSearch in ActiveFile.searched_folders:
-                    print "Skipping " + pathToSearch
+                    # print "Skipping " + pathToSearch
                     continue
                 ActiveFile.searched_folders[pathToSearch] = True
                 # if we get here, we have not discarded this folder yet
                 filenameToTest = os.path.join(pathToSearch, suffix)
-                print "Looking in subfolders for " + filenameToTest
+                # print "Looking in subfolders for " + filenameToTest
                 if os.path.exists(filenameToTest):
-                    print "Found " + filenameToTest
+                    # print "Found " + filenameToTest
                     return filenameToTest
                 found_path = self.searchSubfoldersFor(pathToSearch, suffix)
                 if found_path is not None:
-                    print "Found path!!"
+                    # print "Found path!!"
                     return found_path
-                print "Run out of options"
+                # print "Run out of options"
         return None
 
     def cannot_find_xml(self):
