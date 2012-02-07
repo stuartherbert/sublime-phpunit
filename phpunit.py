@@ -171,14 +171,20 @@ class ActiveFile:
     last_search_time = None
 
     def is_test_buffer(self):
-        filename = os.path.splitext(os.path.basename(self.file_name()))[0]
+        filename = self.file_name()
+        if not os.path.isfile(filename):
+            return False
+        filename = os.path.splitext(filename)[0]
         if filename.endswith('Test'):
             return True
         return False
 
     def is_phpunitxml(self):
         # is this a phpunit.xml file?
-        filename = os.path.basename(self.file_name())
+        filename = self.file_name()
+        if not os.path.isfile(filename):
+            return False
+        filename = os.path.basename(filename)
         if filename == 'phpunit.xml' or filename == 'phpunit.xml.dist':
             return True
         return False
@@ -197,14 +203,16 @@ class ActiveFile:
 
         return None
 
-    def findPhpunitXml(self, folders={}):
-        dir_name = os.path.dirname(self.file_name())
+    def findPhpunitXml(self, search_from, folders={}):
+        dir_name = search_from
+        if not os.path.isdir(dir_name):
+            dir_name = os.path.dirname(dir_name)
 
         files_to_find = ['phpunit.xml', 'phpunit.xml.dist']
         for file_to_find in files_to_find:
-            result = self.findFileFor(folders, dir_name, file_to_find)
+            result = self.findFolderContainingFile(folders, dir_name, file_to_find)
             if result is not None:
-                return [os.path.dirname(result), os.path.basename(result)]
+                return result
         return None
 
     def expireSearchResultsCache(self):
@@ -219,25 +227,40 @@ class ActiveFile:
         if oldpath == path:
             return True
         for folder in folders:
+            parent = os.path.dirname(folder)
+            if parent[:len(path)] == path:
+                return True
             if path == os.path.dirname(folder):
                 return True
         return False
 
-    def findFolderContainingFile(self, folders, oldpath, path, filename):
+    def findFolderContainingFile(self, folders, path, filename):
+        self.expireSearchResultsCache()
+        if filename in ActiveFile.search_results_cache:
+            return ActiveFile.search_results_cache[filename]
+
+        path = self._findFolderContainingFile(folders, '', path, filename)
+        ActiveFile.search_results_cache[filename] = path
+        return path
+
+    def _findFolderContainingFile(self, folders, oldpath, path, filename):
         if self.reachedTopLevelFolder(folders, oldpath, path):
             return None
         if os.path.exists(os.path.join(path, filename)):
             return [path, filename]
 
-        return self.findFolderContainingFile(folders, path, os.path.dirname(path), filename)
+        return self._findFolderContainingFile(folders, path, os.path.dirname(path), filename)
 
     def findFileFor(self, folders, path, suffix):
         self.expireSearchResultsCache()
         ActiveFile.searched_folders = {}
-        # print "------------------------ SEARCH STARTS HERE ---------------------"
+        print "------------------------ SEARCH STARTS HERE ---------------------"
 
         if suffix in ActiveFile.search_results_cache:
+            # print "Found " + suffix + " in cached search results"
             return ActiveFile.search_results_cache[suffix]
+
+        # print ActiveFile.search_results_cache
 
         path = self._findFileFor(folders, '', path, suffix, 3)
         ActiveFile.search_results_cache[suffix] = path
@@ -250,7 +273,7 @@ class ActiveFile:
             return None
         # optimisation - avoid looking in the same place twice
         filenameToTest = os.path.join(path, suffix)
-        # print "Looking for " + filenameToTest
+        print "Looking for " + filenameToTest
         if os.path.exists(filenameToTest):
             return filenameToTest
         found_path = self.searchSubfoldersFor(path, suffix)
@@ -260,15 +283,19 @@ class ActiveFile:
         return self._findFileFor(folders, path, os.path.dirname(path), suffix, depth)
 
     def searchSubfoldersFor(self, path, suffix):
-        # print "searchSubfoldersFor: " + path + ' ' + suffix
+        print "Looking for - " + path + ' ' + suffix
 
         for root, dirs, names in os.walk(path):
+            # avoid hidden places
+            if re.match('/\.+', root):
+                continue
+            # strip out all hidden folders
+            dirs[:] = [d for d in dirs if d[0] is not '.']
             for subdir in dirs:
-                # print "looking at dir " + subdir
-                # optimisation - avoid looking in the same place twice
-                pathToSearch = os.path.join(path, subdir)
+                # print "looking at dir " + path + ' ' + subdir
+                pathToSearch = os.path.join(root, subdir)
+                # print "looking at  - " + root + ' ' + subdir
                 if pathToSearch in ActiveFile.searched_folders:
-                    # print "Skipping " + pathToSearch
                     continue
                 ActiveFile.searched_folders[pathToSearch] = True
                 # if we get here, we have not discarded this folder yet
@@ -277,10 +304,10 @@ class ActiveFile:
                 if os.path.exists(filenameToTest):
                     # print "Found " + filenameToTest
                     return filenameToTest
-                found_path = self.searchSubfoldersFor(pathToSearch, suffix)
-                if found_path is not None:
+                # found_path = self.searchSubfoldersFor(pathToSearch, suffix)
+                # if found_path is not None:
                     # print "Found path!!"
-                    return found_path
+                #    return found_path
                 # print "Run out of options"
         return None
 
@@ -380,7 +407,8 @@ class PhpunitTextBase(sublime_plugin.TextCommand, ActiveView):
 
 class PhpunitTestThisClass(PhpunitTextBase):
     def run(self, args):
-        path = self.findPhpunitXml(self.view.window().folders())
+        test_file = self.find_test_file()
+        path = self.findPhpunitXml(test_file, self.view.window().folders())
         if path is None:
             self.cannot_find_xml()
             return
@@ -401,7 +429,10 @@ class PhpunitTestThisClass(PhpunitTextBase):
             return False
         if self.is_test_buffer():
             return False
-        path = self.findPhpunitXml(self.view.window().folders())
+        test_file = self.find_test_file()
+        if test_file is None:
+            return False
+        path = self.findPhpunitXml(test_file, self.view.window().folders())
         if path is None:
             return False
         path = self.find_test_file()
@@ -414,7 +445,10 @@ class PhpunitTestThisClass(PhpunitTextBase):
             return False
         if self.is_test_buffer():
             return False
-        path = self.findPhpunitXml(self.view.window().folders())
+        test_file = self.find_test_file()
+        if test_file is None:
+            return False
+        path = self.findPhpunitXml(test_file, self.view.window().folders())
         if path is None:
             return False
         return True
@@ -499,7 +533,7 @@ class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
 
 class PhpunitRunTheseTestsCommand(PhpunitTextBase):
     def run(self, args):
-        path = self.findPhpunitXml(self.view.window().folders())
+        path = self.findPhpunitXml(self.view.file_name(), self.view.window().folders())
         if path is None:
             self.cannot_find_xml()
             return
@@ -517,7 +551,7 @@ class PhpunitRunTheseTestsCommand(PhpunitTextBase):
             return False
         if not self.is_test_buffer():
             return False
-        path = self.findPhpunitXml(self.view.window().folders())
+        path = self.findPhpunitXml(self.view.file_name(), self.view.window().folders())
         if path is None:
             return False
         return True
@@ -528,7 +562,13 @@ class PhpunitRunTheseTestsCommand(PhpunitTextBase):
 
 class PhpunitRunAllTestsCommand(PhpunitTextBase):
     def run(self, args):
-        path = self.findPhpunitXml(self.view.window().folders())
+        if self.is_test_buffer():
+            filename = self.view.file_name()
+        else:
+            filename = self.find_test_file()
+            if filename is not None:
+                filename = filename[0]
+        path = self.findPhpunitXml(filename, self.view.window().folders())
         if path is None:
             self.cannot_find_xml()
             return
@@ -543,7 +583,16 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
             return False
         if self.is_phpunitxml():
             return False
-        path = self.findPhpunitXml(self.view.window().folders())
+        if self.is_test_buffer():
+            filename = self.view.file_name()
+        else:
+            filename = self.find_test_file()
+            if filename is not None:
+                filename = filename[0]
+        if filename is None:
+            return False
+        print filename
+        path = self.findPhpunitXml(filename, self.view.window().folders())
         if path is None:
             return False
         return True
@@ -588,74 +637,4 @@ class RunPhpunitOnXmlCommand(PhpunitWindowBase):
         return self.is_phpunitxml()
 
     def description(self, paths=[]):
-        return 'Run Using This XML File...'
-
-
-class RunPhpunitOnTheseTestsCommand(PhpunitWindowBase):
-    def run(self, paths=[]):
-        self.determine_filename(paths)
-        path = self.findPhpunitXml()
-        if path is None:
-            self.cannot_find_xml()
-            return
-
-        file_to_test = self.determineTestFile()
-        cmd = PhpunitCommand(self.window.active_view().window())
-        cmd.run(path, file_to_test)
-
-    def is_enabled(self, paths=[]):
-        return self.is_visible(paths)
-
-    def is_visible(self, paths=[]):
-        self.determine_filename(paths)
-        if not self.is_test_buffer():
-            return False
-        path = self.findPhpunitXml()
-        if path is None:
-            return False
-        return True
-
-    def description(self, paths=[]):
-        return 'Run These Tests...'
-
-
-class RunPhpunitTestsCommand(PhpunitWindowBase):
-    def run(self, paths=[]):
-        self.determine_filename(paths)
-        path = self.findPhpunitXml()
-        if path is None:
-            self.cannot_find_xml()
-            return
-
-        cmd = PhpunitCommand(self.window)
-        cmd.run(path)
-
-    def is_enabled(self, paths=[]):
-        return self.is_visible(paths)
-
-    def is_visible(self, paths=[]):
-        self.determine_filename(paths)
-        if self.is_phpunitxml():
-            return False
-        path = self.findPhpunitXml()
-        if path is None:
-            return False
-        return True
-
-    def description(self, paths=[]):
-        return 'Run All PHPUnit Tests...'
-
-
-class CannotRunPhpunitCommand(PhpunitWindowBase):
-    def is_visible(self, paths=[]):
-        self.determine_filename(paths)
-        path = self.findPhpunitXml()
-        if path is not None:
-            return False
-        return True
-
-    def is_enabled(self):
-        return False
-
-    def description(self):
-        return self.xml_file_needed()
+        return 'Run PHPUnit Using This XML File...'
