@@ -10,58 +10,61 @@ import sublime_plugin
 # the AsyncProcess class has been cribbed from:
 # https://github.com/maltize/sublime-text-2-ruby-tests/blob/master/run_ruby_test.py
 
+
 class AsyncProcess(object):
-  def __init__(self, cmd, listener):
-    self.cmd = cmd
-    self.listener = listener
-    print "DEBUG_EXEC: " + self.cmd
-    self.proc = subprocess.Popen([self.cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if self.proc.stdout:
-      thread.start_new_thread(self.read_stdout, ())
-    if self.proc.stderr:
-      thread.start_new_thread(self.read_stderr, ())
+    def __init__(self, cmd, listener):
+        self.cmd = cmd
+        self.listener = listener
+        print "DEBUG_EXEC: " + self.cmd
+        self.proc = subprocess.Popen([self.cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if self.proc.stdout:
+            thread.start_new_thread(self.read_stdout, ())
+        if self.proc.stderr:
+            thread.start_new_thread(self.read_stderr, ())
 
-  def read_stdout(self):
-    while True:
-      data = os.read(self.proc.stdout.fileno(), 2**15)
-      if data != "":
-        sublime.set_timeout(functools.partial(self.listener.append_data, self.proc, data), 0)
-      else:
-        self.proc.stdout.close()
-        self.listener.is_running = False
-        self.listener.append_data(self.proc, "\n--- PROCESS COMPLETE ---")
-        break
+    def read_stdout(self):
+        while True:
+            data = os.read(self.proc.stdout.fileno(), 2 ** 15)
+            if data != "":
+                sublime.set_timeout(functools.partial(self.listener.append_data, self.proc, data), 0)
+            else:
+                self.proc.stdout.close()
+                self.listener.is_running = False
+                self.listener.append_data(self.proc, "\n--- PROCESS COMPLETE ---")
+                break
 
-  def read_stderr(self):
-    while True:
-      data = os.read(self.proc.stderr.fileno(), 2**15)
-      if data != "":
-        sublime.set_timeout(functools.partial(self.listener.append_data, self.proc, data), 0)
-      else:
-        self.proc.stderr.close()
-        self.listener.is_running = False
-        break
+    def read_stderr(self):
+        while True:
+            data = os.read(self.proc.stderr.fileno(), 2 ** 15)
+            if data != "":
+                sublime.set_timeout(functools.partial(self.listener.append_data, self.proc, data), 0)
+            else:
+                self.proc.stderr.close()
+                self.listener.is_running = False
+                break
 
 # the StatusProcess class has been cribbed from:
 # https://github.com/maltize/sublime-text-2-ruby-tests/blob/master/run_ruby_test.py
 
-class StatusProcess(object):
-  def __init__(self, msg, listener):
-    self.msg = msg
-    self.listener = listener
-    thread.start_new_thread(self.run_thread, ())
 
-  def run_thread(self):
-    progress = ""
-    while True:
-      if self.listener.is_running:
-        if len(progress) >= 10:
-          progress = ""
-        progress += "."
-        sublime.set_timeout(functools.partial(self.listener.update_status, self.msg, progress), 0)
-        time.sleep(1)
-      else:
-        break
+class StatusProcess(object):
+    def __init__(self, msg, listener):
+        self.msg = msg
+        self.listener = listener
+        thread.start_new_thread(self.run_thread, ())
+
+    def run_thread(self):
+        progress = ""
+        while True:
+            if self.listener.is_running:
+                if len(progress) >= 10:
+                    progress = ""
+                progress += "."
+                sublime.set_timeout(functools.partial(self.listener.update_status, self.msg, progress), 0)
+                time.sleep(1)
+            else:
+                break
+
 
 class OutputView(object):
     def __init__(self, name, window):
@@ -100,9 +103,10 @@ class OutputView(object):
         edit = self.output_view.begin_edit()
         self.output_view.insert(edit, self.output_view.size(), str)
         if selection_was_at_end:
-          self.output_view.show(self.output_view.size())
+            self.output_view.show(self.output_view.size())
         self.output_view.end_edit(edit)
         self.output_view.set_read_only(True)
+
 
 class CommandBase:
     def __init__(self, window):
@@ -132,6 +136,7 @@ class CommandBase:
     def update_status(self, msg, progress):
         sublime.status_message(msg + " " + progress)
 
+
 class PhpunitCommand(CommandBase):
     def run(self, path, testfile='', classname=''):
         self.show_empty_output()
@@ -144,6 +149,7 @@ class PhpunitCommand(CommandBase):
             cmd = cmd + " '" + classname + "'"
         self.append_data(self, "$ " + cmd + "\n")
         self.start_async("Running PHPUnit", cmd)
+
 
 class ActiveFile:
     def is_test_buffer(self):
@@ -184,7 +190,7 @@ class ActiveFile:
         if path == '/':
             return None
         if os.path.exists(path + '/' + filename):
-            return [ path, filename ]
+            return [path, filename]
 
         return self.findFolderContainingFile(os.path.dirname(path), filename)
 
@@ -249,6 +255,7 @@ class ActiveFile:
     def xml_file_needed(self):
         return "You need a phpunit.xml or phpunit.xml.dist file to use PHPUnit"
 
+
 class ActiveView(ActiveFile):
     def is_php_buffer(self):
         # is this a PHP buffer?
@@ -271,7 +278,7 @@ class ActiveView(ActiveFile):
         if path is None:
             return None
 
-        return [ path, classname ]
+        return [path, classname]
 
     def find_test_file(self):
         classname = self.determine_full_class_name()
@@ -282,7 +289,7 @@ class ActiveView(ActiveFile):
         if path is None:
             return None
 
-        return [ path, classname ]
+        return [path, classname]
 
     def determine_full_class_name(self):
         namespace = self.extract_namespace()
@@ -311,6 +318,7 @@ class ActiveView(ActiveFile):
             line = self.view.substr(classname)
             return line[6:]
 
+
 class ActiveWindow(ActiveFile):
     def file_name(self):
         if hasattr(self, '_file_name'):
@@ -333,9 +341,11 @@ class ActiveWindow(ActiveFile):
             return True
         return False
 
+
 class PhpunitTextBase(sublime_plugin.TextCommand, ActiveView):
     def run(self, args):
         print 'Not implemented'
+
 
 class PhpunitTestThisClass(PhpunitTextBase):
     def run(self, args):
@@ -378,6 +388,7 @@ class PhpunitTestThisClass(PhpunitTextBase):
             return False
         return True
 
+
 class PhpunitOpenTestClass(PhpunitTextBase):
     def run(self, args):
         file_to_open = self.find_test_file()
@@ -406,6 +417,7 @@ class PhpunitOpenTestClass(PhpunitTextBase):
         if self.is_test_buffer():
             return False
         return True
+
 
 class PhpunitOpenClassBeingTested(PhpunitTextBase):
     def run(self, args):
@@ -436,6 +448,7 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
             return False
         return True
 
+
 class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
     def run(self, args):
         phpunit_xml_file = self.file_name()
@@ -451,6 +464,7 @@ class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
 
     def description(self, paths=[]):
         return 'Run Using This XML File...'
+
 
 class PhpunitRunTheseTestsCommand(PhpunitTextBase):
     def run(self, args):
@@ -479,6 +493,7 @@ class PhpunitRunTheseTestsCommand(PhpunitTextBase):
     def is_visible(self):
         return self.is_enabled()
 
+
 class PhpunitRunAllTestsCommand(PhpunitTextBase):
     def run(self, args):
         path = self.findPhpunitXml()
@@ -504,6 +519,7 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
     def is_visible(self):
         return self.is_enabled()
 
+
 class PhpunitNotAvailableCommand(PhpunitTextBase):
     def is_visible(self):
         if self.is_php_buffer():
@@ -518,9 +534,11 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
     def description(self):
         return self.xml_file_needed()
 
+
 class PhpunitWindowBase(sublime_plugin.WindowCommand, ActiveWindow):
     def run(self, paths=[]):
         print "not implemented"
+
 
 class RunPhpunitOnXmlCommand(PhpunitWindowBase):
     def run(self, paths=[]):
@@ -539,6 +557,7 @@ class RunPhpunitOnXmlCommand(PhpunitWindowBase):
 
     def description(self, paths=[]):
         return 'Run Using This XML File...'
+
 
 class RunPhpunitOnTheseTestsCommand(PhpunitWindowBase):
     def run(self, paths=[]):
@@ -567,6 +586,7 @@ class RunPhpunitOnTheseTestsCommand(PhpunitWindowBase):
     def description(self, paths=[]):
         return 'Run These Tests...'
 
+
 class RunPhpunitTestsCommand(PhpunitWindowBase):
     def run(self, paths=[]):
         self.determine_filename(paths)
@@ -592,6 +612,7 @@ class RunPhpunitTestsCommand(PhpunitWindowBase):
 
     def description(self, paths=[]):
         return 'Run All PHPUnit Tests...'
+
 
 class CannotRunPhpunitCommand(PhpunitWindowBase):
     def is_visible(self, paths=[]):
