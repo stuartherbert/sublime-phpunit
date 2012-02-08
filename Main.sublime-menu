@@ -1,5 +1,17 @@
 [
-{
+    {
+        "id": "tools",
+        "caption": "Tools",
+        "children":
+        [
+            {
+                "caption": "PHPUnit...",
+                "command": "show_overlay",
+                "args": {"overlay": "command_palette", "text": "PHPUnit: " }
+            }
+        ]
+    },
+    {
         "caption": "Preferences",
         "mnemonic": "n",
         "id": "preferences",
@@ -28,18 +40,6 @@
                         ]
                     }
                 ]
-            }
-        ]
-    },
-    {
-        "id": "tools",
-        "caption": "Tools",
-        "children":
-        [
-            {
-                "caption": "PHPUnit...",
-                "command": "show_overlay",
-                "args": {"overlay": "command_palette", "text": "PHPUnit: " }
             }
         ]
     }
