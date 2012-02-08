@@ -204,35 +204,11 @@ class AvailableFiles:
         return False
 
     @staticmethod
-    def findFolderContainingFile(folders, path, filenames):
-        AvailableFiles.expireSearchResultsCache()
-        for filename in filenames:
-            if filename in AvailableFiles.search_results_cache:
-                return AvailableFiles.search_results_cache[filename]
-
-        path = AvailableFiles._findFolderContainingFile(folders, '', path, filenames)
-        AvailableFiles.search_results_cache[path[0]] = path[1]
-        return path[1]
-
-    @staticmethod
-    def _findFolderContainingFile(folders, oldpath, path, filenames):
-        # print "Looking for " + path + '/' + filename
-        for filename in filenames:
-            if os.path.exists(os.path.join(path, filename)):
-                return [path, filename]
-
-        newpath = os.path.dirname(path)
-        if AvailableFiles.reachedTopLevelFolder(folders, path, newpath):
-            if os.path.exists(os.path.join(newpath, filename)):
-                return [newpath, filename]
-            return None
-        return AvailableFiles._findFolderContainingFile(folders, path, newpath, filename)
-
-    @staticmethod
     def findFileFor(folders, path, suffixes):
         AvailableFiles.expireSearchResultsCache()
         # print "------------------------ SEARCH STARTS HERE ---------------------"
 
+        # do we know where these files are?
         for suffix in suffixes:
             if suffix in AvailableFiles.search_results_cache:
                 # print "Found " + suffix + " in cached search results"
@@ -240,7 +216,7 @@ class AvailableFiles:
                     return None
                 return [suffix, AvailableFiles.search_results_cache[suffix]]
 
-        result = AvailableFiles._findFileFor(folders, '', path, suffixes, 3)
+        result = AvailableFiles._findFileFor(folders, '', path, suffixes)
         if result is None:
             for suffix in suffixes:
                 AvailableFiles.search_results_cache[suffix] = None
@@ -250,7 +226,7 @@ class AvailableFiles:
         return result
 
     @staticmethod
-    def _findFileFor(folders, oldpath, path, suffixes, depth):
+    def _findFileFor(folders, oldpath, path, suffixes, depth=3):
         if len(folders) == 0 and depth == 0:
             return None
         for suffix in suffixes:
