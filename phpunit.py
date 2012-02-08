@@ -155,7 +155,7 @@ class PhpunitCommand(CommandBase):
         cmd = "cd '" + path[0] + "' && phpunit"
 
         # Add the additional arguments from the settings file to the command
-        for key, value in Pref.phpunit_additional_args.items():
+        for key, value in Pref.phpunit_additional_args:
             cmd = cmd + " " + key
             if value != "":
                 cmd = cmd + "=" + value

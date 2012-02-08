@@ -1,4 +1,4 @@
 {
     "top_folder_hints": [ ".git", ".hg", ".gitignore", ".hgignore" ],
-    "phpunit_additional_args": []
+    "phpunit_additional_args": {}
 }
