@@ -1,19 +1,23 @@
 [
     {
+        "caption": "PHPUnit: Flush Folder Cache",
+        "command": "phpunit_flush_cache"
+    },
+    {
         "caption": "PHPUnit: Test This Class",
         "command": "phpunit_test_this_class"
     },
     {
-        "caption": "PHPUnit: Open Test Class",
-        "command": "phpunit_open_test_class"
+        "caption": "PHPUnit: Run These Tests",
+        "command": "phpunit_run_these_tests"
     },
     {
         "caption": "PHPUnit: Run Using This XML File",
         "command": "phpunit_run_this_phpunit_xml"
     },
     {
-        "caption": "PHPUnit: Run These Tests",
-        "command": "phpunit_run_these_tests"
+        "caption": "PHPUnit: Open Test Class",
+        "command": "phpunit_open_test_class"
     },
     {
         "caption": "PHPUnit: Open Class Being Tested",
