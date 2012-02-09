@@ -182,29 +182,43 @@ class AvailableFiles:
 
         now = datetime.datetime.now()
         if AvailableFiles.last_search_time is not None:
-            since = AvailableFiles.last_search_time + datetime.timedelta(seconds=20)
+            since = AvailableFiles.last_search_time + datetime.timedelta(seconds=60)
         if AvailableFiles.last_search_time is None or now > since or forced is True:
             AvailableFiles.last_search_time = now
             AvailableFiles.search_results_cache = {}
 
     @staticmethod
-    def reachedTopLevelFolder(folders, oldpath, path):
+    def forgetLastSearchFor(cached_files):
+        for cached_file in cached_files:
+            if cached_file in AvailableFiles.search_results_cache:
+                del AvailableFiles.search_results_cache[cached_file]
+
+    @staticmethod
+    def reachedTopLevelFolders(folders, oldpath, path):
         if oldpath == path:
             return True
-        hints = Prefs.folder_search_hints
-        for hint in hints:
-            if os.path.exists(os.path.join(path, hint)):
-                return True
         for folder in folders:
             parent = os.path.dirname(folder)
             if parent[:len(path)] == path:
                 return True
             if path == os.path.dirname(folder):
                 return True
+        hints = Prefs.folder_search_hints
+        for hint in hints:
+            if os.path.exists(os.path.join(path, hint)):
+                return True
         return False
 
     @staticmethod
-    def findFileFor(folders, path, suffixes):
+    def reachedTopLevelFolder(folder, oldpath, path):
+        if oldpath == path:
+            return True
+        if folder[:len(path)] == path:
+            return True
+        return False
+
+    @staticmethod
+    def searchStraightUpwardsFor(top_folder, path, suffixes):
         AvailableFiles.expireSearchResultsCache()
         # print "------------------------ SEARCH STARTS HERE ---------------------"
 
@@ -216,7 +230,44 @@ class AvailableFiles:
                     return None
                 return [suffix, AvailableFiles.search_results_cache[suffix]]
 
-        result = AvailableFiles._findFileFor(folders, '', path, suffixes)
+        result = AvailableFiles._searchStraightUpwardsFor(top_folder, '', path, suffixes)
+        if result is None:
+            for suffix in suffixes:
+                AvailableFiles.search_results_cache[suffix] = None
+            return None
+        else:
+            AvailableFiles.search_results_cache[result[0]] = result[1]
+        # print result
+        return result
+
+    @staticmethod
+    def _searchStraightUpwardsFor(top_folder, oldpath, path, suffixes):
+        # print "Looking in " + path
+        for suffix in suffixes:
+            filenameToTest = os.path.join(path, suffix)
+            # print "Looking for " + filenameToTest
+            if os.path.exists(filenameToTest):
+                return [suffix, filenameToTest]
+
+        if AvailableFiles.reachedTopLevelFolder(top_folder, oldpath, path):
+            return None
+
+        return AvailableFiles._searchStraightUpwardsFor(top_folder, path, os.path.dirname(path), suffixes)
+
+    @staticmethod
+    def searchUpwardsFor(top_folder, path, suffixes):
+        AvailableFiles.expireSearchResultsCache()
+        # print "------------------------ SEARCH STARTS HERE ---------------------"
+
+        # do we know where these files are?
+        for suffix in suffixes:
+            if suffix in AvailableFiles.search_results_cache:
+                # print "Found " + suffix + " in cached search results"
+                if AvailableFiles.search_results_cache[suffix] is None:
+                    return None
+                return [suffix, AvailableFiles.search_results_cache[suffix]]
+
+        result = AvailableFiles._searchUpwardsFor(top_folder, '', path, suffixes)
         if result is None:
             for suffix in suffixes:
                 AvailableFiles.search_results_cache[suffix] = None
@@ -226,33 +277,65 @@ class AvailableFiles:
         return result
 
     @staticmethod
-    def _findFileFor(folders, oldpath, path, suffixes, depth=3):
-        if len(folders) == 0 and depth == 0:
-            return None
+    def _searchUpwardsFor(top_folder, oldpath, path, suffixes):
         for suffix in suffixes:
             filenameToTest = os.path.join(path, suffix)
             # print "Looking for " + filenameToTest
             if os.path.exists(filenameToTest):
                 return [suffix, filenameToTest]
 
-        found_path = AvailableFiles.searchSubfoldersFor(path, suffixes)
+        found_path = AvailableFiles._searchDownwardsFor(path, suffixes)
         if found_path is not None:
             return found_path
 
-        if AvailableFiles.reachedTopLevelFolder(folders, oldpath, path):
+        if AvailableFiles.reachedTopLevelFolder(top_folder, oldpath, path):
             return None
 
-        depth = depth - 1
-        return AvailableFiles._findFileFor(folders, path, os.path.dirname(path), suffixes, depth)
+        return AvailableFiles._searchUpwardsFor(top_folder, path, os.path.dirname(path), suffixes)
 
     @staticmethod
-    def searchSubfoldersFor(path, suffixes):
+    def searchDownwardsFor(path, suffixes):
+        AvailableFiles.expireSearchResultsCache()
+        # print "------------------------ SEARCH DOWNWARDS STARTS HERE ---------------------"
+
+        # do we know where these files are?
+        for suffix in suffixes:
+            if suffix in AvailableFiles.search_results_cache:
+                # print "Found " + suffix + " in cached search results"
+                if AvailableFiles.search_results_cache[suffix] is None:
+                    return None
+                return [suffix, AvailableFiles.search_results_cache[suffix]]
+
+        result = AvailableFiles._searchDownwardsFor(path, suffixes)
+        if result is None:
+            for suffix in suffixes:
+                AvailableFiles.search_results_cache[suffix] = None
+            return None
+        else:
+            AvailableFiles.search_results_cache[result[0]] = result[1]
+            # print result
+            return result
+
+
+    @staticmethod
+    def _searchDownwardsFor(path, suffixes):
+        # does the path exist?
+        if not os.path.exists(path):
+            return None
+
+        # does the file exist at this level?
+        for suffix in suffixes:
+            filenameToTest = os.path.join(path, suffix)
+            if os.path.exists(filenameToTest):
+                return [suffix, filenameToTest]
+
+        # no, so look in our subfolders
         for root, dirs, names in os.walk(path):
             # avoid hidden places
-            if re.match('/\.+', root):
+            if '.' in root:
                 continue
             # strip out all hidden folders
-            dirs[:] = [d for d in dirs if d[0] is not '.']
+            dirs[:] = [d for d in dirs if d[0] != '.']
             for subdir in dirs:
                 # print "looking at dir " + path + ' ' + subdir
                 pathToSearch = os.path.join(root, subdir)
@@ -311,7 +394,17 @@ class ActiveFile:
             dir_name = os.path.dirname(dir_name)
 
         files_to_find = ['phpunit.xml', 'phpunit.xml.dist']
-        result = AvailableFiles.findFileFor(folders, dir_name, files_to_find)
+
+        # straight-line search - fastest for most people
+        result = AvailableFiles.searchStraightUpwardsFor(self.top_folder(), dir_name, files_to_find)
+        if result is not None:
+            return [os.path.dirname(result[1]), os.path.basename(result[1])]
+
+        # empty the cached results so that we can try again
+        AvailableFiles.forgetLastSearchFor(files_to_find)
+
+        # okay, so where is it?
+        result = AvailableFiles.searchDownwardsFor(self.top_folder(), files_to_find)
         if result is not None:
             return [os.path.dirname(result[1]), os.path.basename(result[1])]
         return None
@@ -343,6 +436,15 @@ class ActiveView(ActiveFile):
     def file_name(self):
         return self.view.file_name()
 
+    def top_folder(self):
+        folders = self.view.window().folders()
+        path = os.path.dirname(self.file_name())
+        oldpath = ''
+        while not AvailableFiles.reachedTopLevelFolders(folders, oldpath, path):
+            oldpath = path
+            path = os.path.dirname(path)
+        return path
+
     def find_tested_file(self):
         fq_classname = self.determine_full_class_name()
         if fq_classname is None:
@@ -357,7 +459,7 @@ class ActiveView(ActiveFile):
         files_to_find.append(os.path.basename(filename))
 
         path_to_search = os.path.dirname(self.file_name())
-        path = AvailableFiles.findFileFor(self.view.window().folders(), path_to_search, files_to_find)
+        path = AvailableFiles.searchUpwardsFor(self.top_folder(), path_to_search, files_to_find)
         if path is None:
             return None
 
@@ -375,7 +477,7 @@ class ActiveView(ActiveFile):
         files_to_find.append(os.path.basename(filename))
 
         path_to_search = os.path.dirname(self.file_name())
-        path = AvailableFiles.findFileFor(self.view.window().folders(), path_to_search, files_to_find)
+        path = AvailableFiles.searchUpwardsFor(self.top_folder(), path_to_search, files_to_find)
         if path is None:
             return None
 
@@ -658,7 +760,7 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
         return False
 
     def description(self):
-        return self.xml_file_needed()
+        return self.cannot_find_xml()
 
 
 class PhpunitFlushCacheCommand(PhpunitTextBase):
