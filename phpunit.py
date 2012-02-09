@@ -13,6 +13,7 @@ class Prefs:
     def load(self):
         settings = sublime.load_settings('PHPUnit.sublime-settings')
         Prefs.folder_search_hints = settings.get('top_folder_hints', [])
+        Prefs.phpunit_xml_location_hints = settings.get('phpunit_xml_location_hints', [])
         Prefs.phpunit_additional_args = settings.get('phpunit_additional_args', {})
 
 Prefs().load()
@@ -352,6 +353,16 @@ class AvailableFiles:
                         return [suffix, filenameToTest]
         return None
 
+    @staticmethod
+    def searchNamedPlacesFor(top_folder, places, suffixes):
+        for place in places:
+            pathToTest = os.path.join(top_folder, place)
+            for suffix in suffixes:
+                filenameToTest = os.path.join(pathToTest, suffix)
+                if os.path.exists(filenameToTest):
+                    return [suffix, filenameToTest]
+        return None
+
 
 class ActiveFile:
     def is_test_buffer(self):
@@ -393,6 +404,14 @@ class ActiveFile:
             dir_name = os.path.dirname(dir_name)
 
         files_to_find = ['phpunit.xml', 'phpunit.xml.dist']
+
+        # check in the places given in hints
+        result = AvailableFiles.searchNamedPlacesFor(self.top_folder(), Prefs.phpunit_xml_location_hints, files_to_find)
+        if result is not None:
+            return [os.path.dirname(result[1]), os.path.basename(result[1])]
+
+        # empty the cached results so that we can try again
+        AvailableFiles.forgetLastSearchFor(files_to_find)
 
         # straight-line search - fastest for most people
         result = AvailableFiles.searchStraightUpwardsFor(self.top_folder(), dir_name, files_to_find)

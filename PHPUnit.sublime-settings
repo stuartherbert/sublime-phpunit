@@ -1,4 +1,5 @@
 {
     "top_folder_hints": [ ".git", ".hg", ".gitignore", ".hgignore" ],
+    "phpunit_xml_location_hints": [ "app" ],
     "phpunit_additional_args": {}
 }
