@@ -25,11 +25,10 @@ Prefs().load()
 
 
 class AsyncProcess(object):
-    def __init__(self, cmd, listener):
-        self.cmd = cmd
+    def __init__(self, cmd, cwd, listener):
         self.listener = listener
-        print "DEBUG_EXEC: " + self.cmd
-        self.proc = subprocess.Popen([self.cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print "DEBUG_EXEC: " + ' '.join(cmd)
+        self.proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
         if self.proc.stdout:
             thread.start_new_thread(self.read_stdout, ())
         if self.proc.stderr:
@@ -138,9 +137,9 @@ class CommandBase:
         self.output_view.clear_output_view()
         self.output_view.show_output()
 
-    def start_async(self, caption, executable):
+    def start_async(self, caption, executable, cwd):
         self.is_running = True
-        self.proc = AsyncProcess(executable, self)
+        self.proc = AsyncProcess(executable, cwd, self)
         StatusProcess(caption, self)
 
     def append_data(self, proc, data):
@@ -154,23 +153,25 @@ class PhpunitCommand(CommandBase):
     def run(self, path, testfile='', classname=''):
         self.show_empty_output()
 
-        cmd = "cd '" + path[0] + "' && phpunit"
+        cmd = ["phpunit"]
 
         # Add the additional arguments from the settings file to the command
         for key, value in Prefs.phpunit_additional_args:
-            cmd = cmd + " " + key
+            arg = key
             if value != "":
-                cmd = cmd + "=" + value
+                arg += "=" + value
+            cmd.append(arg)
 
         if len(path) > 0:
-            cmd = cmd + " -c '" + path[1] + "' "
+            cmd.append("-c")
+            cmd.append(path[1])
         if testfile != '':
-            cmd = cmd + " '" + testfile + "'"
+            cmd.append(testfile)
         if classname != '':
-            cmd = cmd + " '" + classname + "'"
+            cmd.append(classname)
 
-        self.append_data(self, "$ " + cmd + "\n")
-        self.start_async("Running PHPUnit", cmd)
+        self.append_data(self, "$ " + ' '.join(cmd) + "\n")
+        self.start_async("Running PHPUnit", cmd, path[0])
 
 
 class AvailableFiles:
