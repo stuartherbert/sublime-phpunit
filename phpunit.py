@@ -12,7 +12,7 @@ import sublime_plugin
 class Prefs:
     def load(self):
         settings = sublime.load_settings('PHPUnit.sublime-settings')
-        Prefs.folder_search_hints     = settings.get('top_folder_hints', [])
+        Prefs.folder_search_hints = settings.get('top_folder_hints', [])
         Prefs.phpunit_additional_args = settings.get('phpunit_additional_args', {})
 
 Prefs().load()
@@ -316,7 +316,6 @@ class AvailableFiles:
             # print result
             return result
 
-
     @staticmethod
     def _searchDownwardsFor(path, suffixes):
         # does the path exist?
@@ -409,18 +408,14 @@ class ActiveFile:
             return [os.path.dirname(result[1]), os.path.basename(result[1])]
         return None
 
-
     def error_message(self, message):
         sublime.status_message(message)
-
 
     def cannot_find_xml(self):
         return "Cannot find phpunit.xml or phpunit.xml.dist file"
 
-
     def cannot_find_test_file(self):
         return "Cannot find file containing unit tests"
-
 
     def cannot_find_tested_file(self):
         return "Cannot find file to be tested"
@@ -765,7 +760,7 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
 
 class PhpunitFlushCacheCommand(PhpunitTextBase):
     def is_visible(self):
-        AvailableFiles.expireSearchResultsCache(forced = True)
+        AvailableFiles.expireSearchResultsCache(forced=True)
         return False
 
 
