@@ -13,6 +13,7 @@ class Prefs:
     def load(self):
         settings = sublime.load_settings('PHPUnit.sublime-settings')
         Prefs.folder_search_hints = settings.get('top_folder_hints', [])
+        Prefs.folder_exclusions = settings.get('folder_exclusions', [])
         Prefs.phpunit_xml_location_hints = settings.get('phpunit_xml_location_hints', [])
         Prefs.phpunit_additional_args = settings.get('phpunit_additional_args', {})
 
@@ -336,6 +337,9 @@ class AvailableFiles:
                 continue
             # strip out all hidden folders
             dirs[:] = [d for d in dirs if d[0] != '.']
+            # strip out all the folders we want to exclude
+            dirs[:] = [d for d in dirs if d not in Prefs.folder_exclusions]
+            # look inside what is left
             for subdir in dirs:
                 # print "looking at dir " + path + ' ' + subdir
                 pathToSearch = os.path.join(root, subdir)
