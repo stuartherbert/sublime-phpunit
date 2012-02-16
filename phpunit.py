@@ -674,6 +674,45 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
         return True
 
 
+class PhpunitOpenPhpunitXml(PhpunitTextBase):
+    def run(self, args):
+        if self.is_test_buffer():
+            filename = self.view.file_name()
+        else:
+            filename = self.find_test_file()
+            if filename is not None:
+                filename = filename[0]
+        path = self.findPhpunitXml(filename, self.view.window().folders())
+        if path is None:
+            self.cannot_find_xml()
+            return
+        self.view.window().open_file(os.path.join(path[0], path[1]))
+
+    def description(self):
+        return 'Open phpunit.xml'
+
+    def is_enabled(self):
+        if not self.is_php_buffer():
+            return False
+        if self.is_phpunitxml():
+            return False
+        if self.is_test_buffer():
+            filename = self.view.file_name()
+        else:
+            filename = self.find_test_file()
+            if filename is not None:
+                filename = filename[0]
+        if filename is None:
+            return False
+        path = self.findPhpunitXml(filename, self.view.window().folders())
+        if path is None:
+            return False
+        return True
+
+    def is_visible(self):
+        return self.is_enabled()
+
+
 class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
     def run(self, args):
         phpunit_xml_file = self.file_name()
