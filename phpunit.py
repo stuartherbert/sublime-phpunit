@@ -14,6 +14,7 @@ class Prefs:
         settings = sublime.load_settings('PHPUnit.sublime-settings')
         Prefs.folder_search_hints = settings.get('top_folder_hints', [])
         Prefs.folder_exclusions = settings.get('folder_exclusions', [])
+        Prefs.max_search_secs = settings.get('max_search_secs', 2)
         Prefs.phpunit_xml_location_hints = settings.get('phpunit_xml_location_hints', [])
         Prefs.phpunit_additional_args = settings.get('phpunit_additional_args', {})
 
@@ -330,6 +331,15 @@ class AvailableFiles:
             if os.path.exists(filenameToTest):
                 return [suffix, filenameToTest]
 
+        # no it does not
+        #
+        # we're going to have to walk what might be an unsearchably-large
+        # folder structure
+        #
+        # there have been problems with this search taking too long, so now
+        # we cap this search time
+        start = datetime.datetime.now()
+
         # no, so look in our subfolders
         for root, dirs, names in os.walk(path):
             # avoid hidden places
@@ -355,6 +365,12 @@ class AvailableFiles:
                     if os.path.exists(filenameToTest):
                         # print "Found " + filenameToTest
                         return [suffix, filenameToTest]
+                # make sure we're not taking too long
+                since = datetime.datetime.now()
+                if since - start > datetime.timedelta(seconds=Prefs.max_search_secs):
+                    sublime.status_message("Timeout whilst searching for phpunit.xml")
+                    return None
+
         return None
 
     @staticmethod
