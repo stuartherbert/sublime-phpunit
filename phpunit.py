@@ -171,6 +171,7 @@ class PhpunitCommand(CommandBase):
         if classname != '':
             cmd.append(classname)
 
+        self.append_data(self, "# Running in folder: " + path[0] + "\n")
         self.append_data(self, "$ " + ' '.join(cmd) + "\n")
         self.start_async("Running PHPUnit", cmd, path[0])
 
