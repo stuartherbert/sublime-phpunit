@@ -29,7 +29,7 @@ class AsyncProcess(object):
     def __init__(self, cmd, cwd, listener):
         self.listener = listener
         print "DEBUG_EXEC: " + ' '.join(cmd)
-        self.proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+        self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
         if self.proc.stdout:
             thread.start_new_thread(self.read_stdout, ())
         if self.proc.stderr:
@@ -154,26 +154,26 @@ class PhpunitCommand(CommandBase):
     def run(self, path, testfile='', classname=''):
         self.show_empty_output()
 
-        cmd = ["phpunit"]
+        args = ["phpunit"]
 
         # Add the additional arguments from the settings file to the command
         for key, value in Prefs.phpunit_additional_args:
             arg = key
             if value != "":
                 arg += "=" + value
-            cmd.append(arg)
+            args.append(arg)
 
         if len(path) > 0:
-            cmd.append("-c")
-            cmd.append(path[1])
-        if testfile != '':
-            cmd.append(testfile)
+            args.append("-c")
+            args.append(path[1])
         if classname != '':
-            cmd.append(classname)
+            args.append(classname)
+        if testfile != '':
+            args.append(testfile)
 
         self.append_data(self, "# Running in folder: " + path[0] + "\n")
-        self.append_data(self, "$ " + ' '.join(cmd) + "\n")
-        self.start_async("Running PHPUnit", cmd, path[0])
+        self.append_data(self, "$ " + ' '.join(args) + "\n")
+        self.start_async("Running PHPUnit", args, path[0])
 
 
 class AvailableFiles:
