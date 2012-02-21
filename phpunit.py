@@ -17,8 +17,14 @@ class Prefs:
         Prefs.max_search_secs = settings.get('max_search_secs', 2)
         Prefs.phpunit_xml_location_hints = settings.get('phpunit_xml_location_hints', [])
         Prefs.phpunit_additional_args = settings.get('phpunit_additional_args', {})
+        Prefs.debug = settings.get('debug', 0)
 
 Prefs().load()
+
+
+def debug_msg(msg):
+    if Prefs.debug == 1:
+        print "[PHPUnit Plugin] " + msg
 
 
 # the AsyncProcess class has been cribbed from:
@@ -28,7 +34,7 @@ Prefs().load()
 class AsyncProcess(object):
     def __init__(self, cmd, cwd, listener):
         self.listener = listener
-        print "DEBUG_EXEC: " + ' '.join(cmd)
+        debug_msg("DEBUG_EXEC: " + ' '.join(cmd))
         self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
         if self.proc.stdout:
             thread.start_new_thread(self.read_stdout, ())
@@ -183,12 +189,14 @@ class AvailableFiles:
 
     @staticmethod
     def expireSearchResultsCache(forced=False):
+        debug_msg("resetting list of searched folders")
         AvailableFiles.searched_folders = {}
 
         now = datetime.datetime.now()
         if AvailableFiles.last_search_time is not None:
             since = AvailableFiles.last_search_time + datetime.timedelta(seconds=60)
         if AvailableFiles.last_search_time is None or now > since or forced is True:
+            debug_msg("emptying search results cache")
             AvailableFiles.last_search_time = now
             AvailableFiles.search_results_cache = {}
 
@@ -225,12 +233,12 @@ class AvailableFiles:
     @staticmethod
     def searchStraightUpwardsFor(top_folder, path, suffixes):
         AvailableFiles.expireSearchResultsCache()
-        # print "------------------------ SEARCH STARTS HERE ---------------------"
+        debug_msg("---- New search straight upwards ----")
 
         # do we know where these files are?
         for suffix in suffixes:
             if suffix in AvailableFiles.search_results_cache:
-                # print "Found " + suffix + " in cached search results"
+                debug_msg("Found " + suffix + " in cached search results")
                 if AvailableFiles.search_results_cache[suffix] is None:
                     return None
                 return [suffix, AvailableFiles.search_results_cache[suffix]]
@@ -247,10 +255,10 @@ class AvailableFiles:
 
     @staticmethod
     def _searchStraightUpwardsFor(top_folder, oldpath, path, suffixes):
-        # print "Looking in " + path
+        debug_msg("Looking in " + path)
         for suffix in suffixes:
             filenameToTest = os.path.join(path, suffix)
-            # print "Looking for " + filenameToTest
+            debug_msg("Looking for " + filenameToTest)
             if os.path.exists(filenameToTest):
                 return [suffix, filenameToTest]
 
@@ -262,12 +270,12 @@ class AvailableFiles:
     @staticmethod
     def searchUpwardsFor(top_folder, path, suffixes):
         AvailableFiles.expireSearchResultsCache()
-        # print "------------------------ SEARCH STARTS HERE ---------------------"
+        debug_msg("---- New search upwards ----")
 
         # do we know where these files are?
         for suffix in suffixes:
             if suffix in AvailableFiles.search_results_cache:
-                # print "Found " + suffix + " in cached search results"
+                debug_msg("Found " + suffix + " in cached search results")
                 if AvailableFiles.search_results_cache[suffix] is None:
                     return None
                 return [suffix, AvailableFiles.search_results_cache[suffix]]
@@ -285,7 +293,7 @@ class AvailableFiles:
     def _searchUpwardsFor(top_folder, oldpath, path, suffixes):
         for suffix in suffixes:
             filenameToTest = os.path.join(path, suffix)
-            # print "Looking for " + filenameToTest
+            debug_msg("Looking for " + filenameToTest)
             if os.path.exists(filenameToTest):
                 return [suffix, filenameToTest]
 
@@ -301,12 +309,12 @@ class AvailableFiles:
     @staticmethod
     def searchDownwardsFor(path, suffixes):
         AvailableFiles.expireSearchResultsCache()
-        # print "------------------------ SEARCH DOWNWARDS STARTS HERE ---------------------"
+        debug_msg("---- New search downwards ----")
 
         # do we know where these files are?
         for suffix in suffixes:
             if suffix in AvailableFiles.search_results_cache:
-                # print "Found " + suffix + " in cached search results"
+                debug_msg("Found " + suffix + " in cached search results")
                 if AvailableFiles.search_results_cache[suffix] is None:
                     return None
                 return [suffix, AvailableFiles.search_results_cache[suffix]]
@@ -390,20 +398,26 @@ class ActiveFile:
     def is_test_buffer(self):
         filename = self.file_name()
         if not os.path.isfile(filename):
+            debug_msg("Buffer is not a test file; is not a real file")
             return False
         filename = os.path.splitext(filename)[0]
         if filename.endswith('Test'):
+            debug_msg("Buffer is a test file")
             return True
+        debug_msg("Buffer is not a test file")
         return False
 
     def is_phpunitxml(self):
         # is this a phpunit.xml file?
         filename = self.file_name()
         if not os.path.isfile(filename):
+            debug_msg("Buffer is not phpunit.xml; is not a real file")
             return False
         filename = os.path.basename(filename)
         if filename == 'phpunit.xml' or filename == 'phpunit.xml.dist':
+            debug_msg("Buffer is a phpunit.xml file")
             return True
+        debug_msg("Buffer is not a phpunit.xml file")
         return False
 
     def determineClassToTest(self):
@@ -421,11 +435,13 @@ class ActiveFile:
         return None
 
     def findPhpunitXml(self, search_from, folders={}):
+        debug_msg("Looking for phpunit.xml of some kind")
         dir_name = search_from
         if not os.path.isdir(dir_name):
             dir_name = os.path.dirname(dir_name)
 
         files_to_find = ['phpunit.xml', 'phpunit.xml.dist']
+        debug_msg("Looking for " + ', '.join(files_to_find))
 
         # check in the places given in hints
         result = AvailableFiles.searchNamedPlacesFor(self.top_folder(), Prefs.phpunit_xml_location_hints, files_to_find)
@@ -461,12 +477,28 @@ class ActiveFile:
     def cannot_find_tested_file(self):
         return "Cannot find file to be tested"
 
+    def not_php_file(self, syntax):
+        debug_msg(syntax)
+        matches = re.search("/([^/]+).tmLanguage", syntax)
+        if matches is not None:
+            syntax = matches.group(1)
+        return "Plugin does not support " + syntax + " syntax buffers"
+
 
 class ActiveView(ActiveFile):
     def is_php_buffer(self):
+        # most reliable way is to check the file extension
+        # we cannot rely on the buffer syntax; it can sometimes report
+        # 'HTML' even in a PHP buffer
+        ext = os.path.splitext(self.file_name())[1]
+        if ext == '.php':
+            debug_msg("Buffer is a PHP buffer")
+            return True
         # is this a PHP buffer?
         if re.search('.+\PHP.tmLanguage', self.view.settings().get('syntax')):
             return True
+        # if we get here, we're not sure what else to try
+        debug_msg("Buffer is not a PHP buffer; extension is: " + ext + "; syntax is: " + self.view.settings().get('syntax'))
         return False
 
     def file_name(self):
@@ -479,9 +511,11 @@ class ActiveView(ActiveFile):
         while not AvailableFiles.reachedTopLevelFolders(folders, oldpath, path):
             oldpath = path
             path = os.path.dirname(path)
+        debug_msg("Top folder for this project is: " + path)
         return path
 
     def find_tested_file(self):
+        debug_msg("Looking for tested file")
         fq_classname = self.determine_full_class_name()
         if fq_classname is None:
             return None
@@ -489,6 +523,8 @@ class ActiveView(ActiveFile):
             fq_classname = fq_classname[:-4]
 
         filename = fq_classname + '.php'
+
+        debug_msg("Looking for tested file: " + os.path.basename(filename))
 
         files_to_find = []
         files_to_find.append(filename)
@@ -502,15 +538,19 @@ class ActiveView(ActiveFile):
         return [path[1], fq_classname]
 
     def find_test_file(self):
+        debug_msg("Looking for test file")
         classname = self.determine_full_class_name()
         if classname is None:
             return None
 
         classname = classname + 'Test'
         filename = classname + '.php'
+
         files_to_find = []
         files_to_find.append(filename)
         files_to_find.append(os.path.basename(filename))
+
+        debug_msg("Looking for test files: " + files_to_find)
 
         path_to_search = os.path.dirname(self.file_name())
         path = AvailableFiles.searchUpwardsFor(self.top_folder(), path_to_search, files_to_find)
@@ -835,6 +875,8 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
         return False
 
     def description(self):
+        if not self.is_php_buffer():
+            return self.not_php_file(self.view.settings().get('syntax'))
         return self.cannot_find_xml()
 
 

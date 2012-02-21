@@ -3,5 +3,6 @@
     "folder_exclusions": [ "branches", "nbproject", "tags", "vendor" ],
     "max_search_secs": 2,
     "phpunit_xml_location_hints": [ "app" ],
-    "phpunit_additional_args": {}
+    "phpunit_additional_args": {},
+    "debug": 0
 }
