@@ -10,7 +10,8 @@ import sublime_plugin
 
 
 class Prefs:
-    def load(self):
+    @staticmethod
+    def load():
         settings = sublime.load_settings('PHPUnit.sublime-settings')
         Prefs.folder_search_hints = settings.get('top_folder_hints', [])
         Prefs.folder_exclusions = settings.get('folder_exclusions', [])
@@ -19,7 +20,7 @@ class Prefs:
         Prefs.phpunit_additional_args = settings.get('phpunit_additional_args', {})
         Prefs.debug = settings.get('debug', 0)
 
-Prefs().load()
+Prefs.load()
 
 
 def debug_msg(msg):
@@ -550,7 +551,7 @@ class ActiveView(ActiveFile):
         files_to_find.append(filename)
         files_to_find.append(os.path.basename(filename))
 
-        debug_msg("Looking for test files: " + files_to_find)
+        debug_msg("Looking for test files: " + ', '.join(files_to_find))
 
         path_to_search = os.path.dirname(self.file_name())
         path = AvailableFiles.searchUpwardsFor(self.top_folder(), path_to_search, files_to_find)
@@ -882,6 +883,7 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
 
 class PhpunitFlushCacheCommand(PhpunitTextBase):
     def is_visible(self):
+        Prefs.load()
         AvailableFiles.expireSearchResultsCache(forced=True)
         return False
 
