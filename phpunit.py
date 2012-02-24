@@ -617,6 +617,17 @@ class PhpunitTextBase(sublime_plugin.TextCommand, ActiveView):
     def run(self, args):
         print 'Not implemented'
 
+    def toggle_active_group(self):
+        # where will we open it?
+        num_groups = self.view.window().num_groups()
+        if num_groups > 1:
+            active_group = self.view.window().active_group()
+            active_group = (active_group + 1) % 2
+            if active_group >= num_groups:
+                active_group = num_groups - 1
+            debug_msg("switching to group " + str(active_group))
+            self.view.window().focus_group(active_group)
+
 
 class PhpunitTestThisClass(PhpunitTextBase):
     def run(self, args):
@@ -675,6 +686,10 @@ class PhpunitOpenTestClass(PhpunitTextBase):
             self.error_message(self.cannot_find_test_file())
             return
 
+        # where will we open the file?
+        self.toggle_active_group()
+
+        # open the file
         self.view.window().open_file(file_to_open[0])
 
     def description(self):
@@ -707,6 +722,10 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
             self.error_message(self.cannot_find_tested_file())
             return
 
+        # where will we open the file?
+        self.toggle_active_group()
+
+        # open the file
         self.view.window().open_file(file_to_open[0])
 
     def description(self):
@@ -745,6 +764,11 @@ class PhpunitOpenPhpunitXml(PhpunitTextBase):
         if path is None:
             self.cannot_find_xml()
             return
+
+        # where will we open the file?
+        self.toggle_active_group()
+
+        # open the file
         self.view.window().open_file(os.path.join(path[0], path[1]))
 
     def description(self):
