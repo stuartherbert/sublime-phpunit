@@ -164,7 +164,7 @@ class PhpunitCommand(CommandBase):
         args = ["phpunit"]
 
         # Add the additional arguments from the settings file to the command
-        for key, value in Prefs.phpunit_additional_args:
+        for key, value in Prefs.phpunit_additional_args.items():
             arg = key
             if value != "":
                 arg += "=" + value
