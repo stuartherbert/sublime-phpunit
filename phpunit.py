@@ -36,7 +36,7 @@ class AsyncProcess(object):
     def __init__(self, cmd, cwd, listener):
         self.listener = listener
         debug_msg("DEBUG_EXEC: " + ' '.join(cmd))
-        self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+        self.proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
         if self.proc.stdout:
             thread.start_new_thread(self.read_stdout, ())
         if self.proc.stderr:
