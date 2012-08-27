@@ -408,6 +408,18 @@ class ActiveFile:
         debug_msg("Buffer is not a test file")
         return False
 
+    def is_tests_buffer(self):
+        filename = self.file_name()
+        if not os.path.isfile(filename):
+            debug_msg("Buffer is not a testsuite file; is not a real file")
+            return False
+        filename = os.path.splitext(filename)[0]
+        if filename.endswith('Tests'):
+            debug_msg("Buffer is a testsuite file")
+            return True
+        debug_msg("Buffer is not a testsuite file")
+        return False
+
     def is_phpunitxml(self):
         # is this a phpunit.xml file?
         filename = self.file_name()
@@ -645,7 +657,7 @@ class PhpunitTestThisClass(PhpunitTextBase):
         cmd.run(path, file_to_test[0], file_to_test[1])
 
     def description(self):
-        if self.is_test_buffer():
+        if self.is_test_buffer() or self.is_tests_buffer():
             return None
         test_file = self.find_test_file()
         if test_file is None:
@@ -658,7 +670,7 @@ class PhpunitTestThisClass(PhpunitTextBase):
     def is_enabled(self):
         if not self.is_php_buffer():
             return False
-        if self.is_test_buffer():
+        if self.is_test_buffer() or self.is_tests_buffer():
             return False
         test_file = self.find_test_file()
         if test_file is None:
@@ -671,7 +683,7 @@ class PhpunitTestThisClass(PhpunitTextBase):
     def is_visible(self):
         if not self.is_php_buffer():
             return False
-        if self.is_test_buffer():
+        if self.is_test_buffer() or self.is_tests_buffer():
             return False
         test_file = self.find_test_file()
         if test_file is None:
@@ -700,7 +712,7 @@ class PhpunitOpenTestClass(PhpunitTextBase):
     def is_enabled(self):
         if not self.is_php_buffer():
             return False
-        if self.is_test_buffer():
+        if self.is_test_buffer() or self.is_tests_buffer():
             return False
         path = self.find_test_file()
         if path is None:
@@ -710,7 +722,7 @@ class PhpunitOpenTestClass(PhpunitTextBase):
     def is_visible(self):
         if not self.is_php_buffer():
             return False
-        if self.is_test_buffer():
+        if self.is_test_buffer() or self.is_tests_buffer():
             return False
         return True
 
@@ -739,6 +751,8 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
             return False
         if not self.is_test_buffer():
             return False
+        if self.is_tests_buffer():
+            return False
         path = self.find_tested_file()
         if path is None:
             return False
@@ -749,12 +763,14 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
             return False
         if not self.is_test_buffer():
             return False
+        if self.is_tests_buffer():
+            return False
         return True
 
 
 class PhpunitOpenPhpunitXml(PhpunitTextBase):
     def run(self, args):
-        if self.is_test_buffer():
+        if self.is_test_buffer() or self.is_tests_buffer():
             filename = self.view.file_name()
         else:
             filename = self.find_test_file()
@@ -779,7 +795,7 @@ class PhpunitOpenPhpunitXml(PhpunitTextBase):
             return False
         if self.is_phpunitxml():
             return False
-        if self.is_test_buffer():
+        if self.is_test_buffer() or self.is_tests_buffer():
             filename = self.view.file_name()
         else:
             filename = self.find_test_file()
@@ -833,7 +849,7 @@ class PhpunitRunTheseTestsCommand(PhpunitTextBase):
     def is_enabled(self):
         if not self.is_php_buffer():
             return False
-        if not self.is_test_buffer():
+        if not self.is_test_buffer() and not self.is_tests_buffer():
             return False
         path = self.findPhpunitXml(self.view.file_name(), self.view.window().folders())
         if path is None:
@@ -843,14 +859,14 @@ class PhpunitRunTheseTestsCommand(PhpunitTextBase):
     def is_visible(self):
         if not self.is_php_buffer():
             return False
-        if not self.is_test_buffer():
+        if not self.is_test_buffer() and not self.is_tests_buffer():
             return False
         return True
 
 
 class PhpunitRunAllTestsCommand(PhpunitTextBase):
     def run(self, args):
-        if self.is_test_buffer():
+        if self.is_test_buffer() or self.is_tests_buffer():
             filename = self.view.file_name()
         else:
             filename = self.find_test_file()
@@ -871,7 +887,7 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
             return False
         if self.is_phpunitxml():
             return False
-        if self.is_test_buffer():
+        if self.is_test_buffer() or self.is_tests_buffer():
             filename = self.view.file_name()
         else:
             filename = self.find_test_file()
