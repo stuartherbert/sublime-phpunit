@@ -36,7 +36,14 @@ class AsyncProcess(object):
     def __init__(self, cmd, cwd, listener):
         self.listener = listener
         debug_msg("DEBUG_EXEC: " + ' '.join(cmd))
-        self.proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+        if os.name == 'nt':
+            # we have to run PHPUnit via the shell to get it to work for everyone on Windows
+            # no idea why :(
+            # I'm sure this will prove to be a terrible idea
+            self.proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+        else:
+            # Popen works properly on OSX and Linux
+            self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
         if self.proc.stdout:
             thread.start_new_thread(self.read_stdout, ())
         if self.proc.stderr:
