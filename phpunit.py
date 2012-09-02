@@ -19,6 +19,7 @@ class Prefs:
         Prefs.phpunit_xml_location_hints = settings.get('phpunit_xml_location_hints', [])
         Prefs.phpunit_additional_args = settings.get('phpunit_additional_args', {})
         Prefs.debug = settings.get('debug', 0)
+        Prefs.path_to_phpunit = settings.get('path_to_phpunit', False)
 
 Prefs.load()
 
@@ -168,7 +169,10 @@ class PhpunitCommand(CommandBase):
     def run(self, path, testfile='', classname=''):
         self.show_empty_output()
 
-        args = ["phpunit"]
+        if Prefs.path_to_phpunit is not False:
+            args = [Prefs.path_to_phpunit]
+        else:
+            args = ["phpunit"]
 
         # Add the additional arguments from the settings file to the command
         for key, value in Prefs.phpunit_additional_args.items():
