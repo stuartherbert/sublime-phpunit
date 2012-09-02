@@ -123,14 +123,14 @@ class OutputView(object):
         str = data.decode("utf-8")
         str = str.replace('\r\n', '\n').replace('\r', '\n')
 
-        selection_was_at_end = (len(self.output_view.sel()) == 1
-          and self.output_view.sel()[0]
-            == sublime.Region(self.output_view.size()))
+        # selection_was_at_end = (len(self.output_view.sel()) == 1
+        #  and self.output_view.sel()[0]
+        #    == sublime.Region(self.output_view.size()))
         self.output_view.set_read_only(False)
         edit = self.output_view.begin_edit()
         self.output_view.insert(edit, self.output_view.size(), str)
-        if selection_was_at_end:
-            self.output_view.show(self.output_view.size())
+        #if selection_was_at_end:
+        self.output_view.show(self.output_view.size())
         self.output_view.end_edit(edit)
         self.output_view.set_read_only(True)
 
