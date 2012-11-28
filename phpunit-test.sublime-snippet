@@ -13,6 +13,9 @@
 -->
 <snippet>
     <content><![CDATA[
+/**
+ * @covers ${2:Class::Method}
+ */
 public function test${1:[testcase-name]}()
 {
     // ----------------------------------------------------------------
@@ -29,6 +32,8 @@ public function test${1:[testcase-name]}()
     // test the results
     //
     // explain what you expect to have happened
+
+    \$this->markTestIncomplete('Not yet implemented');
 }
 
 ]]></content>
