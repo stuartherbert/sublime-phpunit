@@ -1,5 +1,5 @@
 {
-    "top_folder_hints": [ ".git", ".hg", ".gitignore", ".hgignore" ],
+    "top_folder_hints": [ ".git", ".hg" ],
     "folder_exclusions": [ "branches", "nbproject", "tags", "vendor" ],
     "max_search_secs": 2,
     "phpunit_xml_location_hints": [ "app" ],
