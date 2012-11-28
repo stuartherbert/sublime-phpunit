@@ -17,7 +17,7 @@
  * ${3:[testcase-description]}
  *
  * @dataProvider ${1:[dataProviderMethod]}
- *
+ * @covers ${2:Class::Method}
  * @return void
  */
 public function test${2:[testcase-name]}()
