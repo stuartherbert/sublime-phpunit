@@ -598,7 +598,7 @@ class ActiveView(ActiveFile):
         return path
 
     def extract_namespace(self):
-        namespaces = self.view.find_all("^namespace ([A-Za-z0-9_\\\]+);")
+        namespaces = self.view.find_all("namespace ([A-Za-z0-9_\\\]+);")
         if namespaces is None or len(namespaces) == 0:
             return ''
         for namespace in namespaces:
@@ -606,7 +606,7 @@ class ActiveView(ActiveFile):
             return line[10:-1]
 
     def extract_classname(self):
-        classes = self.view.find_all("^class [A-Za-z0-9_]+")
+        classes = self.view.find_all("class [A-Za-z0-9_]+")
         if classes is None or len(classes) == 0:
             return None
         for classname in classes:
