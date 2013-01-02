@@ -565,6 +565,7 @@ class ActiveView(ActiveFile):
     def find_test_file(self):
         debug_msg("Looking for test file")
         classname = self.determine_full_class_name()
+        debug_msg("classname is: " + classname)
         if classname is None:
             return None
 
@@ -606,13 +607,13 @@ class ActiveView(ActiveFile):
             return line[10:-1]
 
     def extract_classname(self):
-        classes = self.view.find_all("class [A-Za-z0-9_]+")
-        if classes is None or len(classes) == 0:
-            return None
-        for classname in classes:
-            line = self.view.substr(classname)
-            return line[6:]
-
+        # Look for any classes in the current window
+        class_regions = self.view.find_by_selector('entity.name.type.class')
+        for r in class_regions:
+            # return the first class we find
+            return self.view.substr(r)
+        # If we get here, then there are no classes in the current window
+        return None
 
 class ActiveWindow(ActiveFile):
     def file_name(self):
