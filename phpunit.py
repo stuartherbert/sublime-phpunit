@@ -172,6 +172,7 @@ class PhpunitCommand(CommandBase):
         if Prefs.path_to_phpunit is not False:
             args = [Prefs.path_to_phpunit]
         else:
+            # find where PHPUnit is installed
             args = ["phpunit"]
 
         # Add the additional arguments from the settings file to the command
@@ -495,6 +496,9 @@ class ActiveFile:
     def cannot_find_tested_file(self):
         return "Cannot find file to be tested"
 
+    def not_in_project(self):
+        return "Only works if you have a ST2 project open"
+
     def not_php_file(self, syntax):
         debug_msg(syntax)
         matches = re.search("/([^/]+).tmLanguage", syntax)
@@ -517,6 +521,12 @@ class ActiveView(ActiveFile):
             return True
         # if we get here, we're not sure what else to try
         debug_msg("Buffer is not a PHP buffer; extension is: " + ext + "; syntax is: " + self.view.settings().get('syntax'))
+        return False
+
+    def has_project_open(self):
+        folders = self.view.window().folders()
+        if folders:
+            return True
         return False
 
     def file_name(self):
@@ -694,6 +704,8 @@ class PhpunitTestThisClass(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        if not self.has_project_open():
+            return False
         if not self.is_php_buffer():
             return False
         if self.is_test_buffer() or self.is_tests_buffer():
@@ -733,6 +745,8 @@ class PhpunitOpenTestClass(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        if not self.has_project_open():
+            return False
         if not self.is_php_buffer():
             return False
         if self.is_test_buffer() or self.is_tests_buffer():
@@ -772,6 +786,8 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        if not self.has_project_open():
+            return False
         if not self.is_php_buffer():
             return False
         if not self.is_test_buffer():
@@ -804,6 +820,8 @@ class PhpunitOpenPhpunitXml(PhpunitTextBase):
         return 'Open phpunit.xml'
 
     def is_enabled(self):
+        if not self.has_project_open():
+            return False
         if not self.is_php_buffer():
             return False
         if self.is_phpunitxml():
@@ -836,6 +854,8 @@ class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
         return self.is_visible()
 
     def is_visible(self):
+        if not self.has_project_open():
+            return False
         return self.is_phpunitxml()
 
     def description(self, paths=[]):
@@ -870,6 +890,8 @@ class PhpunitRunTheseTestsCommand(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        if not self.has_project_open():
+            return False
         if not self.is_php_buffer():
             return False
         if not self.is_test_buffer() and not self.is_tests_buffer():
@@ -896,6 +918,8 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
         return 'Run All Unit Tests...'
 
     def is_enabled(self):
+        if not self.has_project_open():
+            return False
         if not self.is_php_buffer():
             return False
         if self.is_phpunitxml():
@@ -919,6 +943,8 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
 
 class PhpunitNotAvailableCommand(PhpunitTextBase):
     def is_visible(self):
+        if not self.has_project_open():
+            return True
         if self.is_php_buffer():
             return False
         if self.is_phpunitxml():
@@ -929,6 +955,8 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
         return False
 
     def description(self):
+        if not self.has_project_open():
+            return self.not_in_project()
         if not self.is_php_buffer():
             return self.not_php_file(self.view.settings().get('syntax'))
         return self.cannot_find_xml()
