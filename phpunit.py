@@ -123,6 +123,8 @@ class OutputView(object):
     def append_data(self, proc, data):
         str = data.decode("utf-8")
         str = str.replace('\r\n', '\n').replace('\r', '\n')
+        str = re.sub('(.*)(\[2K|;\d+m)', '', str)
+        str = re.sub('\[(\d+)m', '', str)
 
         # selection_was_at_end = (len(self.output_view.sel()) == 1
         #  and self.output_view.sel()[0]
