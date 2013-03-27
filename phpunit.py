@@ -20,6 +20,8 @@ class Prefs:
         Prefs.phpunit_additional_args = settings.get('phpunit_additional_args', {})
         Prefs.debug = settings.get('debug', 0)
         Prefs.path_to_phpunit = settings.get('path_to_phpunit', False)
+        Prefs.copy_env = settings.get('copy_env', True)
+        Prefs.override_env = settings.get('override_env', {})
 
 Prefs.load()
 
@@ -36,15 +38,26 @@ def debug_msg(msg):
 class AsyncProcess(object):
     def __init__(self, cmd, cwd, listener):
         self.listener = listener
+        if Prefs.copy_env:
+            env = os.environ.copy()
+        else:
+            debug_msg("Using EMPTY environment!")
+            env = {}
+
+        if Prefs.override_env:
+            debug_msg("Updating environment with " + ' '.join(Prefs.override_env))
+            env.update(Prefs.override_env)
+
         debug_msg("DEBUG_EXEC: " + ' '.join(cmd))
+
         if os.name == 'nt':
             # we have to run PHPUnit via the shell to get it to work for everyone on Windows
             # no idea why :(
             # I'm sure this will prove to be a terrible idea
-            self.proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+            self.proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
         else:
             # Popen works properly on OSX and Linux
-            self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+            self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
         if self.proc.stdout:
             thread.start_new_thread(self.read_stdout, ())
         if self.proc.stderr:
