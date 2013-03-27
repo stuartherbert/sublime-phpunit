@@ -4,5 +4,7 @@
     "max_search_secs": 2,
     "phpunit_xml_location_hints": [ "app" ],
     "phpunit_additional_args": {},
+    "copy_env": true,
+    "override_env": {},
     "debug": 0
 }
