@@ -8,10 +8,6 @@
         "command": "phpunit_run_tests"
     },
     {
-        "caption": "PHPUnit: Run Using This XML File",
-        "command": "phpunit_run_this_phpunit_xml"
-    },
-    {
         "caption": "PHPUnit: Open Test Class",
         "command": "phpunit_open_test_class"
     },
@@ -24,7 +20,15 @@
         "command": "phpunit_toggle_class_test_class"
     },
     {
+        "caption": "PHPUnit: Open phpunit.xml",
+        "command": "phpunit_open_phpunit_xml"
+    },
+    {
         "caption": "PHPUnit: Run All Tests",
         "command": "phpunit_run_all_tests"
+    },
+    {
+        "caption": "PHPUnit: Run Using This XML File",
+        "command": "phpunit_run_this_phpunit_xml"
     }
 ]

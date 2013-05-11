@@ -285,59 +285,6 @@ class FoundFiles:
         return FoundFiles.cache[top_folder][filename]
 
 
-class MissingFiles:
-    cache = {}
-
-    @staticmethod
-    def addToCache(top_folder, filename, result):
-        if top_folder not in MissingFiles.cache:
-            MissingFiles.cache[top_folder] = {}
-        Msgs.debug_msg('Adding ' + result + ' to missing files cache for ' + top_folder)
-        MissingFiles.cache[top_folder][filename] = result
-
-    @staticmethod
-    def removeFromCache(top_folder, filename):
-        Msgs.debug_msg('Removing ' + filename + ' from missing files cache for ' + top_folder)
-        if top_folder not in MissingFiles.cache:
-            Msgs.debug_msg('-- no cache for ' + top_folder)
-            return
-
-        if filename not in MissingFiles.cache[top_folder]:
-            Msgs.debug_msg('-- ' + filename + ' not found in cache')
-            return
-
-        del MissingFiles.cache[top_folder][filename]
-        Msgs.debug_msg('-- ' + filename + ' removed from cache')
-
-    @staticmethod
-    def removeCacheFor(top_folder):
-        Msgs.debug_msg('Removing missing files cache for ' + top_folder)
-        if top_folder not in MissingFiles.cache:
-            Msgs.debug_msg('-- no cache for ' + top_folder)
-            return
-        del MissingFiles.cache[top_folder]
-        Msgs.debug_msg('-- removed cache')
-
-    @staticmethod
-    def removeCache():
-        Msgs.debug_msg('Completely emptying the missing files cache')
-        MissingFiles.cache = {}
-
-    @staticmethod
-    def getFromCache(top_folder, filename):
-        Msgs.debug_msg('Get ' + filename + ' from missing files cache for ' + top_folder)
-        if top_folder not in MissingFiles.cache:
-            Msgs.debug_msg('-- no cache for ' + top_folder)
-            return None
-
-        if filename not in MissingFiles.cache[top_folder]:
-            Msgs.debug_msg('-- ' + filename + ' not found in cache')
-            return None
-
-        Msgs.debug_msg('-- found ' + MissingFiles.cache[top_folder][filename])
-        return MissingFiles.cache[top_folder][filename]
-
-
 class FindFiles:
     searched_folders = {}
     searched_for = {}
@@ -456,6 +403,7 @@ class FindFiles:
 
 class ProjectFiles:
     files = {}
+    last_built_time = None
 
     @staticmethod
     def buildFilesList(path):
@@ -479,13 +427,15 @@ class ProjectFiles:
         end = datetime.datetime.now()
         duration = (end - start)
         Msgs.debug_msg('-- took ' + str(duration.seconds) + '.' + str(duration.microseconds) + ' second(s) to build')
-        Msgs.debug_msg('-- found '+ str(i) + ' file(s)')
+        Msgs.debug_msg('-- found ' + str(i) + ' file(s)')
         # print ProjectFiles.files[path]
+        ProjectFiles.last_built_time = end
 
     @staticmethod
     def find(top_folder, filename):
         Msgs.debug_msg('Searching ProjectFiles cache for ' + filename)
         if top_folder not in ProjectFiles.files:
+            Msgs.debug_msg('-- no cache for ' + top_folder)
             return None
 
         result = [x for x in ProjectFiles.files[top_folder] if filename in x]
@@ -494,6 +444,12 @@ class ProjectFiles:
             return None
         Msgs.debug_msg('-- found ' + result[0])
         return result[0]
+
+    @staticmethod
+    def expired(when):
+        if when < ProjectFiles.last_built_time:
+            return True
+        return False
 
 
 class ActiveFile:
@@ -724,6 +680,8 @@ class ActiveWindow(ActiveFile):
 
 
 class PhpunitTextBase(sublime_plugin.TextCommand, ActiveView):
+    last_checked_enabled = None
+
     def run(self, args):
         print 'Not implemented'
 
@@ -738,28 +696,41 @@ class PhpunitTextBase(sublime_plugin.TextCommand, ActiveView):
             Msgs.debug_msg("switching to group " + str(active_group))
             self.view.window().focus_group(active_group)
 
+    def enabled_checked(self):
+        self.last_checked_enabled = datetime.datetime.now()
 
-class PhpunitRunTests(PhpunitTextBase):
+    def needs_enabling(self):
+        if self.last_checked_enabled is None or ProjectFiles.expired(self.last_checked_enabled):
+            return True
+        return False
+
+
+class PhpunitRunTestsCommand(PhpunitTextBase):
     path_to_config = None
     file_to_test = None
-    file_contains_tests = False
 
     def run(self, args):
-        Msgs.operation = "PhpunitRunTestsClass.run"
+        Msgs.operation = "PhpunitRunTestsClassCommand.run"
 
         cmd = PhpunitCommand(self.view.window())
         cmd.run(self.path_to_config, self.file_to_test)
 
     def description(self):
-        Msgs.operation = "PhpunitRunTestsClass.description"
+        Msgs.operation = "PhpunitRunTestsClassCommand.description"
         if self.file_to_test is None:
             return self.cannot_find_test_file()
-        if self.file_contains_tests:
-            return 'Run These Tests ...'
-        return 'Test This Class...'
+        if self.path_to_config is None:
+            return self.cannot_find_xml()
+        return 'Run Tests ...'
 
     def is_enabled(self):
-        Msgs.operation = "PhpunitRunTestsClass.is_enabled"
+        Msgs.operation = "PhpunitRunTestsClassCommand.is_enabled"
+        Msgs.debug_msg('called')
+        self.enabled_checked()
+
+        self.file_to_test = None
+        self.path_to_config = None
+
         if not self.has_project_open():
             return False
         if not self.is_php_buffer():
@@ -768,30 +739,36 @@ class PhpunitRunTests(PhpunitTextBase):
         if self.is_test_buffer() or self.is_tests_buffer():
             test_file_to_open = [self.view.file_name()]
             tested_file_to_open = self.find_tested_file()
-            self.file_contains_tests = True
         else:
             test_file_to_open = self.find_test_file()
             tested_file_to_open = [self.view.file_name()]
-            self.file_contains_tests = False
 
         if test_file_to_open is None or tested_file_to_open is None:
             return False
 
         self.file_to_test = test_file_to_open[0]
         self.path_to_config = self.findPhpunitXml(self.file_to_test)
+        if self.path_to_config is None:
+            return False
         return True
 
     def is_visible(self):
+        if self.needs_enabling():
+            self.is_enabled()
+
+        Msgs.operation = "PhpunitRunTestsClassCommand.is_visible"
+        Msgs.debug_msg('called')
+
         if self.is_php_buffer() and os.path.exists(self.view.file_name()):
             return True
         return False
 
 
-class PhpunitOpenTestClass(PhpunitTextBase):
+class PhpunitOpenTestClassCommand(PhpunitTextBase):
     file_to_open = None
 
     def run(self, args):
-        Msgs.operation = "PhpunitOpenTestClass.run"
+        Msgs.operation = "PhpunitOpenTestClassCommand.run"
 
         # where will we open the file?
         self.toggle_active_group()
@@ -803,7 +780,14 @@ class PhpunitOpenTestClass(PhpunitTextBase):
         return 'Open Test Class'
 
     def is_enabled(self):
-        Msgs.operation = "PhpunitOpenTestClass.is_enabled"
+        Msgs.operation = "PhpunitOpenTestClassCommand.is_enabled"
+        Msgs.debug_msg('called')
+        self.enabled_checked()
+
+        self.file_to_open = None
+
+        if not self.has_project_open():
+            return False
         if not self.is_php_buffer():
             return False
         if self.is_test_buffer() or self.is_tests_buffer():
@@ -815,16 +799,22 @@ class PhpunitOpenTestClass(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        if self.needs_enabling():
+            self.is_enabled()
+
+        Msgs.operation = "PhpunitOpenTestClassCommand.is_visible"
+        Msgs.debug_msg('called')
+
         if self.file_to_open is not None:
             return True
         return False
 
 
-class PhpunitOpenClassBeingTested(PhpunitTextBase):
+class PhpunitOpenClassBeingTestedCommand(PhpunitTextBase):
     file_to_open = None
 
     def run(self, args):
-        Msgs.operation = "PhpunitOpenClassBeingTested.run"
+        Msgs.operation = "PhpunitOpenClassBeingTestedCommand.run"
 
         # where will we open the file?
         self.toggle_active_group()
@@ -836,7 +826,14 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
         return 'Open Class Being Tested'
 
     def is_enabled(self):
-        Msgs.operation = "PhpunitOpenClassBeingTested.is_enabled"
+        Msgs.operation = "PhpunitOpenClassBeingTestedCommand.is_enabled"
+        Msgs.debug_msg('called')
+        self.enabled_checked()
+
+        self.file_to_open = None
+
+        if not self.has_project_open():
+            return False
         if not self.is_php_buffer():
             return False
         if not self.is_test_buffer():
@@ -850,16 +847,22 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        if self.needs_enabling():
+            self.is_enabled()
+
+        Msgs.operation = "PhpunitOpenClassBeingTestedCommand.is_visible"
+        Msgs.debug_msg('called')
+
         if self.file_to_open is not None:
             return True
         return False
 
 
-class PhpunitToggleClassTestClass(PhpunitTextBase):
+class PhpunitToggleClassTestClassCommand(PhpunitTextBase):
     file_to_open = None
 
     def run(self, args):
-        Msgs.operation = "PhpunitToggleClassTestClass.run"
+        Msgs.operation = "PhpunitToggleClassTestClassCommand.run"
 
         # where will we open the file?
         self.toggle_active_group()
@@ -868,23 +871,34 @@ class PhpunitToggleClassTestClass(PhpunitTextBase):
         self.view.window().open_file(self.file_to_open)
 
     def is_enabled(self):
-        Msgs.operation = "PhpunitToggleClassTestClass.is_enabled"
+        Msgs.operation = "PhpunitToggleClassTestClassCommand.is_enabled"
+        Msgs.debug_msg('called')
+        self.enabled_checked()
+
+        self.file_to_open = None
+
+        if not self.has_project_open():
+            return False
         if not self.is_php_buffer():
             return False
         if self.is_test_buffer() or self.is_tests_buffer():
-            test_file_to_open = self.view.file_name()
-            tested_file_to_open = self.find_tested_file()
+            file_to_open = self.find_tested_file()
         else:
-            test_file_to_open = self.find_test_file()
-            tested_file_to_open = self.view.file_name()
+            file_to_open = self.find_test_file()
 
-        if test_file_to_open is None and tested_file_to_open is None:
+        if file_to_open is None:
             return False
 
-        self.file_to_open = test_file_to_open[0] if test_file_to_open is not None else tested_file_to_open[0]
+        self.file_to_open = file_to_open[0]
         return True
 
     def is_visible(self):
+        if self.needs_enabling():
+            self.is_enabled()
+
+        Msgs.operation = "PhpunitToggleClassTestClassCommand.is_visible"
+        Msgs.debug_msg('called')
+
         if self.file_to_open is not None:
             return True
         return False
@@ -893,11 +907,11 @@ class PhpunitToggleClassTestClass(PhpunitTextBase):
         return 'Toggle Between Code And Test File'
 
 
-class PhpunitOpenPhpunitXml(PhpunitTextBase):
+class PhpunitOpenPhpunitXmlCommand(PhpunitTextBase):
     file_to_open = None
 
     def run(self, args):
-        Msgs.operation = "PhpunitOpenPhpunitXml.run"
+        Msgs.operation = "PhpunitOpenPhpunitXmlCommand.run"
 
         # where will we open the file?
         self.toggle_active_group()
@@ -909,12 +923,23 @@ class PhpunitOpenPhpunitXml(PhpunitTextBase):
         return 'Open phpunit.xml'
 
     def is_visible(self):
+        if self.needs_enabling():
+            self.is_enabled()
+
+        Msgs.operation = "PhpunitOpenPhpunitXmlCommand.is_visible"
+        Msgs.debug_msg('called')
+
         if self.file_to_open is not None:
             return True
         return False
 
     def is_enabled(self):
-        Msgs.operation = "PhpunitOpenPhpunitXml.is_enabled"
+        Msgs.operation = "PhpunitOpenPhpunitXmlCommand.is_enabled"
+        Msgs.debug_msg('called')
+        self.enabled_checked()
+
+        self.file_to_open = None
+
         if not self.has_project_open():
             return False
         if not self.is_php_buffer():
@@ -944,10 +969,21 @@ class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
         cmd.run(phpunit_xml_file)
 
     def is_enabled(self):
-        return self.is_visible()
+        Msgs.operation = "PhpunitRunThisPhpunitXmlCommand.is_enabled"
+        Msgs.debug_msg('called')
+        self.enabled_checked()
+
+        if not self.has_project_open():
+            return False
+        return self.is_phpunitxml()
 
     def is_visible(self):
+        if self.needs_enabling():
+            self.is_enabled()
+
         Msgs.operation = "PhpunitRunThisPhpunitXmlCommand.is_visible"
+        Msgs.debug_msg('called')
+
         if not self.has_project_open():
             return False
         return self.is_phpunitxml()
@@ -969,6 +1005,10 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
 
     def is_enabled(self):
         Msgs.operation = "PhpunitRunAllTestsCommand.is_enabled"
+        Msgs.debug_msg('called')
+        self.enabled_checked()
+
+        self.path_to_config = None
         if not self.has_project_open():
             return False
         if not self.is_php_buffer():
@@ -991,6 +1031,12 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        if self.needs_enabling():
+            self.is_enabled()
+
+        Msgs.operation = "PhpunitRunAllTestsCommand.is_visible"
+        Msgs.debug_msg('called')
+
         if self.path_to_config is not None:
             return True
         return False
@@ -999,6 +1045,8 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
 class PhpunitNotAvailableCommand(PhpunitTextBase):
     def is_visible(self):
         Msgs.operation = "PhpunitNotAvailableCommand.is_visible"
+        Msgs.debug_msg('called')
+
         if not self.has_project_open():
             return True
         if self.is_php_buffer():
@@ -1008,10 +1056,15 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
         return True
 
     def is_enabled(self):
+        Msgs.operation = "PhpunitNotAvailableCommand.is_enabled"
+        Msgs.debug_msg('called')
+
         return False
 
     def description(self):
-        Msgs.operation = "PhpunitNotAvailableCommand.is_description"
+        Msgs.operation = "PhpunitNotAvailableCommand.description"
+        Msgs.debug_msg('called')
+
         if not self.has_project_open():
             return self.not_in_project()
         if not self.is_php_buffer():
@@ -1020,12 +1073,30 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
 
 
 class PhpunitFlushCacheCommand(PhpunitTextBase):
-    def is_visible(self):
-        Msgs.operation = "PhpunitFlushCacheCommand.is_visible"
+    def is_enabled(self):
+        Msgs.operation = "PhpunitFlushCacheCommand.is_enabled"
+        Msgs.debug_msg('called')
+
         Prefs.load()
         FoundFiles.removeCache()
-        MissingFiles.removeCache()
         ProjectFiles.buildFilesList(self.top_folder())
+
+        # special case!!
+        #
+        # we call enabled_checked() AT THE END because it must have a
+        # timestamp no earlier than the time we rebuilt the ProjectFiles
+        # cache
+        self.enabled_checked()
+
+        return False
+
+    def is_visible(self):
+        if self.needs_enabling():
+            self.is_enabled()
+
+        Msgs.operation = "PhpunitFlushCacheCommand.is_visible"
+        Msgs.debug_msg('called')
+
         return False
 
 
@@ -1037,17 +1108,23 @@ class PhpunitWindowBase(sublime_plugin.WindowCommand, ActiveWindow):
 class RunPhpunitOnXmlCommand(PhpunitWindowBase):
     def run(self, paths=[]):
         Msgs.operation = "RunPhpunitOnXmlCommand.run"
+        Msgs.debug_msg('called')
+
         self.determine_filename(paths)
         filename = self.file_name()
-        dir_to_cd = os.path.dirname(filename)
         cmd = PhpunitCommand(self.window)
         cmd.run(filename)
 
     def is_enabled(self, paths=[]):
+        Msgs.operation = "RunPhpunitOnXmlCommand.is_enabled"
+        Msgs.debug_msg('called')
+
         return self.is_visible(paths)
 
     def is_visible(self, paths=[]):
         Msgs.operation = "RunPhpunitOnXmlCommand.is_visible"
+        Msgs.debug_msg('called')
+
         self.determine_filename(paths)
         return self.is_phpunitxml()
 
