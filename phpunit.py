@@ -359,12 +359,6 @@ class FindFiles:
                 FoundFiles.addToCache(top_folder, file_to_find, result)
                 return result
 
-            # check the ProjectFiles map
-            result = ProjectFiles.find(top_folder, file_to_find)
-            if result is not None:
-                FoundFiles.addToCache(top_folder, file_to_find, result)
-                return result
-
             # check in the places given in hints
             result = FindFiles.searchNamedPlacesFor(top_folder, Prefs.phpunit_xml_location_hints, file_to_find)
             if result is not None:
@@ -372,28 +366,23 @@ class FindFiles:
                 FoundFiles.addToCache(top_folder, file_to_find, result)
                 return result
 
-            # we have exhausted all of our performance tricks
-            #
-            # we will only continue if the ProjectFiles cache is disabled
-            if top_folder not in ProjectFiles.files:
-                # if we reach this point, we are going to have to search on disk
-                dir_name = search_from
-                if not os.path.isdir(dir_name):
-                    dir_name = os.path.dirname(dir_name)
+            # if we reach this point, we are going to have to search on disk
+            dir_name = search_from
+            if not os.path.isdir(dir_name):
+                dir_name = os.path.dirname(dir_name)
 
-                # straight-line search - fastest for most people
-                result = FindFiles.searchStraightUpwardsFor(top_folder, dir_name, file_to_find)
-                if result is not None:
-                    # cache the result
-                    FoundFiles.addToCache(top_folder, file_to_find, result)
-                    return result
+            # straight-line search - fastest for most people
+            result = FindFiles.searchStraightUpwardsFor(top_folder, dir_name, file_to_find)
+            if result is not None:
+                # cache the result
+                FoundFiles.addToCache(top_folder, file_to_find, result)
+                return result
 
-                # okay, so where is it?
-                result = FindFiles.searchDownwardsFor(top_folder, file_to_find)
-                if result is not None:
-                    # cache the result
-                    FoundFiles.addToCache(top_folder, file_to_find, result)
-                    return result
+            # okay, so where is it?
+            result = ProjectFiles.find(top_folder, file_to_find)
+            if result is not None:
+                FoundFiles.addToCache(top_folder, file_to_find, result)
+                return result
 
         # if we get here, we cannot find the file
         return None
@@ -463,88 +452,6 @@ class FindFiles:
             return None
 
         return FindFiles._searchStraightUpwardsFor(top_folder, path, os.path.dirname(path), file_to_find)
-
-    @staticmethod
-    def searchUpwardsFor(top_folder, path, file_to_find):
-        Msgs.debug_msg("---- New search upwards ----")
-
-        # do we know where these files are?
-        return FindFiles._searchUpwardsFor(top_folder, '', path, file_to_find)
-
-    @staticmethod
-    def _searchUpwardsFor(top_folder, oldpath, path, file_to_find):
-        filenameToTest = os.path.join(path, file_to_find)
-        Msgs.debug_msg("Looking for " + filenameToTest)
-        if os.path.exists(filenameToTest):
-            return filenameToTest
-
-        found_path = FindFiles._searchDownwardsFor(path, file_to_find)
-        if found_path is not None:
-            return found_path
-
-        if FindFiles.reachedTopLevelFolder(top_folder, oldpath, path):
-            return None
-
-        return FindFiles._searchUpwardsFor(top_folder, path, os.path.dirname(path), file_to_find)
-
-    @staticmethod
-    def searchDownwardsFor(path, file_to_find):
-        Msgs.debug_msg("---- New search downwards ----")
-
-        # do we know where these files are?
-        return FindFiles._searchDownwardsFor(path, file_to_find)
-
-    @staticmethod
-    def _searchDownwardsFor(path, file_to_find):
-        Msgs.debug_msg('Looking in ' + path)
-        # does the path exist?
-        if not os.path.exists(path):
-            return None
-
-        # does the file exist at this level?
-        filenameToTest = os.path.join(path, file_to_find)
-        Msgs.debug_msg('Looking for ' + filenameToTest)
-        if os.path.exists(filenameToTest):
-            return filenameToTest
-
-        # no it does not
-        #
-        # we're going to have to walk what might be an unsearchably-large
-        # folder structure
-        #
-        # there have been problems with this search taking too long, so now
-        # we cap this search time
-        start = datetime.datetime.now()
-
-        # no, so look in our subfolders
-        for root, dirs, names in os.walk(path):
-            # avoid hidden places
-            if '.' in root:
-                continue
-            # strip out all hidden folders
-            dirs[:] = [d for d in dirs if d[0] != '.']
-            # strip out all the folders we want to exclude
-            dirs[:] = [d for d in dirs if d not in Prefs.folder_exclusions]
-            # look inside what is left
-            for subdir in dirs:
-                # print "looking at dir " + path + ' ' + subdir
-                pathToSearch = os.path.join(root, subdir)
-                # print "looking at  - " + root + ' ' + subdir
-                FindFiles.searched_folders[pathToSearch] = True
-                filenameToTest = os.path.join(pathToSearch, file_to_find)
-                # print "Looking in subfolders for " + filenameToTest
-                if os.path.exists(filenameToTest):
-                    # print "Found " + filenameToTest
-                    Msgs.debug_msg('-- found ' + filenameToTest)
-                    return filenameToTest
-                # make sure we're not taking too long
-                since = datetime.datetime.now()
-                if since - start > datetime.timedelta(seconds=Prefs.max_search_secs):
-                    sublime.status_message("Timeout whilst searching for phpunit.xml")
-                    return None
-
-        Msgs.debug_msg('-- no match found')
-        return None
 
 
 class ProjectFiles:
@@ -643,7 +550,7 @@ class ActiveFile:
 
         return None
 
-    def findPhpunitXml(self, search_from, folders={}):
+    def findPhpunitXml(self, search_from):
         Msgs.debug_msg("Looking for phpunit.xml of some kind")
 
         # what are we looking for?
@@ -833,37 +740,22 @@ class PhpunitTextBase(sublime_plugin.TextCommand, ActiveView):
 
 
 class PhpunitRunTests(PhpunitTextBase):
+    path_to_config = None
+    file_to_test = None
+    file_contains_tests = False
+
     def run(self, args):
         Msgs.operation = "PhpunitRunTestsClass.run"
-        if self.is_test_buffer() or self.is_tests_buffer():
-            file_to_test = [self.view.file_name()]
-        else:
-            file_to_test = self.find_test_file()
-        if file_to_test is None:
-            self.error_message(self.cannot_find_test_file())
-            return
-
-        path = self.findPhpunitXml(file_to_test[0], self.view.window().folders())
-        if path is None:
-            self.error_message(self.cannot_find_xml())
-            return
 
         cmd = PhpunitCommand(self.view.window())
-        cmd.run(path, file_to_test[0])
+        cmd.run(self.path_to_config, self.file_to_test)
 
     def description(self):
         Msgs.operation = "PhpunitRunTestsClass.description"
-        # are we a window containing tests?
-        if self.is_test_buffer() or self.is_tests_buffer():
-            return 'Run These Tests...'
-        # we are a class ... need to find the tests
-        test_file = self.find_test_file()
-        if test_file is None:
+        if self.file_to_test is None:
             return self.cannot_find_test_file()
-        # we need a phpunit.xml file first
-        path = self.findPhpunitXml(test_file[0], self.view.window().folders())
-        if path is None:
-            return self.cannot_find_xml()
+        if self.file_contains_tests:
+            return 'Run These Tests ...'
         return 'Test This Class...'
 
     def is_enabled(self):
@@ -874,56 +766,41 @@ class PhpunitRunTests(PhpunitTextBase):
             return False
 
         if self.is_test_buffer() or self.is_tests_buffer():
-            test_file_to_open = self.view.file_name()
+            test_file_to_open = [self.view.file_name()]
             tested_file_to_open = self.find_tested_file()
+            self.file_contains_tests = True
         else:
             test_file_to_open = self.find_test_file()
-            tested_file_to_open = self.view.file_name()
+            tested_file_to_open = [self.view.file_name()]
+            self.file_contains_tests = False
 
         if test_file_to_open is None or tested_file_to_open is None:
             return False
 
+        self.file_to_test = test_file_to_open[0]
+        self.path_to_config = self.findPhpunitXml(self.file_to_test)
         return True
 
     def is_visible(self):
-        Msgs.operation = "PhpunitRunTestsClass.is_visible"
-        if not self.has_project_open():
-            return False
-        if not self.is_php_buffer():
-            return False
-
-        if self.is_test_buffer() or self.is_tests_buffer():
-            test_file_to_open = self.view.file_name()
-            tested_file_to_open = self.find_tested_file()
-        else:
-            test_file_to_open = self.find_test_file()
-            tested_file_to_open = self.view.file_name()
-
-        if test_file_to_open is None or tested_file_to_open is None:
-            return False
-
-        return True
+        if self.is_php_buffer() and os.path.exists(self.view.file_name()):
+            return True
+        return False
 
 
 class PhpunitOpenTestClass(PhpunitTextBase):
+    file_to_open = None
+
     def run(self, args):
         Msgs.operation = "PhpunitOpenTestClass.run"
-        file_to_open = self.find_test_file()
-        if file_to_open is None:
-            self.error_message(self.cannot_find_test_file())
-            return
 
         # where will we open the file?
         self.toggle_active_group()
 
         # open the file
-        self.view.window().open_file(file_to_open[0])
+        self.view.window().open_file(self.file_to_open)
 
     def description(self):
-        Msgs.operation = "PhpunitOpenTestClass.description"
-        if self.is_enabled():
-            return 'Open Test Class'
-        return self.cannot_find_test_file()
+        return 'Open Test Class'
 
     def is_enabled(self):
         Msgs.operation = "PhpunitOpenTestClass.is_enabled"
@@ -934,40 +811,28 @@ class PhpunitOpenTestClass(PhpunitTextBase):
         path = self.find_test_file()
         if path is None:
             return False
+        self.file_to_open = path[0]
         return True
 
     def is_visible(self):
-        Msgs.operation = "PhpunitOpenTestClass.is_visible"
-        if not self.has_project_open():
-            return False
-        if not self.is_php_buffer():
-            return False
-        if self.is_test_buffer() or self.is_tests_buffer():
-            return False
-        return True
+        if self.file_to_open is not None:
+            return True
+        return False
 
 
 class PhpunitOpenClassBeingTested(PhpunitTextBase):
+    file_to_open = None
+
     def run(self, args):
         Msgs.operation = "PhpunitOpenClassBeingTested.run"
-        file_to_open = self.find_tested_file()
-        if file_to_open is None:
-            self.error_message(self.cannot_find_tested_file())
-            return
 
         # where will we open the file?
         self.toggle_active_group()
 
-        # print file_to_open
-
         # open the file
-        self.view.window().open_file(file_to_open[0])
+        self.view.window().open_file(self.file_to_open)
 
     def description(self):
-        Msgs.operation = "PhpunitOpenClassBeingTested.description"
-        file_to_open = self.find_tested_file()
-        if file_to_open is None:
-            return self.cannot_find_tested_file()
         return 'Open Class Being Tested'
 
     def is_enabled(self):
@@ -981,24 +846,29 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
         path = self.find_tested_file()
         if path is None:
             return False
+        self.file_to_open = path[0]
         return True
 
     def is_visible(self):
-        Msgs.operation = "PhpunitOpenClassBeingTested.is_visible"
-        if not self.has_project_open():
-            return False
-        if not self.is_php_buffer():
-            return False
-        if not self.is_test_buffer():
-            return False
-        if self.is_tests_buffer():
-            return False
-        return True
+        if self.file_to_open is not None:
+            return True
+        return False
 
 
 class PhpunitToggleClassTestClass(PhpunitTextBase):
+    file_to_open = None
+
     def run(self, args):
         Msgs.operation = "PhpunitToggleClassTestClass.run"
+
+        # where will we open the file?
+        self.toggle_active_group()
+
+        # open the file
+        self.view.window().open_file(self.file_to_open)
+
+    def is_enabled(self):
+        Msgs.operation = "PhpunitToggleClassTestClass.is_enabled"
         if not self.is_php_buffer():
             return False
         if self.is_test_buffer() or self.is_tests_buffer():
@@ -1009,32 +879,15 @@ class PhpunitToggleClassTestClass(PhpunitTextBase):
             tested_file_to_open = self.view.file_name()
 
         if test_file_to_open is None and tested_file_to_open is None:
-            self.error_message(self.cannot_find_test_file())
-            return
-
-        file_to_open = test_file_to_open if test_file_to_open is not None else tested_file_to_open
-        # where will we open the file?
-        self.toggle_active_group()
-
-        # open the file
-        self.view.window().open_file(file_to_open[0])
-
-    def is_enabled(self):
-        Msgs.operation = "PhpunitToggleClassTestClass.is_enabled"
-        if not self.is_php_buffer():
             return False
-        if self.is_test_buffer() or self.is_tests_buffer():
-            path_tested = self.find_tested_file()
-            path_test = self.view.file_name()
-        else:
-            path_tested = self.view.file_name()
-            path_test = self.find_test_file()
-        if path_tested is None and path_test is None:
-            return False
+
+        self.file_to_open = test_file_to_open[0] if test_file_to_open is not None else tested_file_to_open[0]
         return True
 
     def is_visible(self):
-        return self.is_enabled
+        if self.file_to_open is not None:
+            return True
+        return False
 
     def description(self):
         return 'Toggle Between Code And Test File'
@@ -1045,35 +898,22 @@ class PhpunitOpenPhpunitXml(PhpunitTextBase):
 
     def run(self, args):
         Msgs.operation = "PhpunitOpenPhpunitXml.run"
-        print self.file_to_open
-        if self.is_test_buffer() or self.is_tests_buffer():
-            filename = self.view.file_name()
-        else:
-            filename = self.find_test_file()
-            if filename is not None:
-                filename = filename[0]
-            else:
-                filename = self.view.file_name()
-        file_to_open = self.findPhpunitXml(filename, self.view.window().folders())
-        if file_to_open is None:
-            self.cannot_find_xml()
-            return
 
         # where will we open the file?
         self.toggle_active_group()
 
         # open the file
-        self.view.window().open_file(file_to_open)
+        self.view.window().open_file(self.file_to_open)
 
     def description(self):
         return 'Open phpunit.xml'
 
-    def is_enabled(self):
+    def is_visible(self):
         if self.file_to_open is not None:
             return True
         return False
 
-    def is_visible(self):
+    def is_enabled(self):
         Msgs.operation = "PhpunitOpenPhpunitXml.is_enabled"
         if not self.has_project_open():
             return False
@@ -1089,7 +929,7 @@ class PhpunitOpenPhpunitXml(PhpunitTextBase):
                 filename = filename[0]
             else:
                 filename = self.view.file_name()
-        path = self.findPhpunitXml(filename, self.view.window().folders())
+        path = self.findPhpunitXml(filename)
         if path is None:
             return False
         self.file_to_open = path
@@ -1117,22 +957,12 @@ class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
 
 
 class PhpunitRunAllTestsCommand(PhpunitTextBase):
+    path_to_config = None
+
     def run(self, args):
         Msgs.operation = "PhpunitRunAllTestsCommand.run"
-        if self.is_test_buffer() or self.is_tests_buffer():
-            filename = self.view.file_name()
-        else:
-            filename = self.find_test_file()
-            if filename is not None:
-                filename = filename[0]
-            else:
-                filename = self.view.file_name()
-        path = self.findPhpunitXml(filename, self.view.window().folders())
-        if path is None:
-            self.cannot_find_xml()
-            return
         cmd = PhpunitCommand(self.view.window())
-        cmd.run(path)
+        cmd.run(self.path_to_config)
 
     def description(self):
         return 'Run All Unit Tests...'
@@ -1153,13 +983,17 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
                 filename = filename[0]
             else:
                 filename = self.view.file_name()
-        path = self.findPhpunitXml(filename, self.view.window().folders())
+        path = self.findPhpunitXml(filename)
         if path is None:
             return False
+
+        self.path_to_config = path
         return True
 
     def is_visible(self):
-        return self.is_enabled()
+        if self.path_to_config is not None:
+            return True
+        return False
 
 
 class PhpunitNotAvailableCommand(PhpunitTextBase):
