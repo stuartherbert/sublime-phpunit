@@ -595,6 +595,10 @@ class ActiveView(ActiveFile):
         files_to_find.append(filename)
         files_to_find.append(os.path.basename(filename))
 
+        filename = self.view.file_name()
+        if filename[-8:] == 'Test.php':
+            filename = filename[:-8] + '.php'
+
         path_to_search = os.path.dirname(self.file_name())
         path = FindFiles.find(self.top_folder(), path_to_search, files_to_find)
         if path is None:
@@ -615,6 +619,7 @@ class ActiveView(ActiveFile):
         files_to_find = []
         files_to_find.append(filename)
         files_to_find.append(os.path.basename(filename))
+        files_to_find.append(os.path.basename(self.view.file_name()))
 
         Msgs.debug_msg("Looking for test files: " + ', '.join(files_to_find))
 
