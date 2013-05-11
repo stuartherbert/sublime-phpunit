@@ -4,12 +4,8 @@
         "command": "phpunit_flush_cache"
     },
     {
-        "caption": "PHPUnit: Test This Class",
-        "command": "phpunit_test_this_class"
-    },
-    {
-        "caption": "PHPUnit: Run These Tests",
-        "command": "phpunit_run_these_tests"
+        "caption": "PHPUnit: Run Tests",
+        "command": "phpunit_run_tests"
     },
     {
         "caption": "PHPUnit: Run Using This XML File",

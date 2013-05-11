@@ -5,12 +5,10 @@
         "children":
         [
             { "command": "phpunit_flush_cache" },
-            { "command": "phpunit_test_this_class" },
-            { "command": "phpunit_run_these_tests" },
+            { "command": "phpunit_run_tests" },
             { "command": "phpunit_run_this_phpunit_xml" },
             { "command": "phpunit_open_test_class" },
             { "command": "phpunit_open_class_being_tested" },
-            { "command": "phpunit_toggle_class_test_class" },
             { "command": "phpunit_open_phpunit_xml" },
             { "command": "phpunit_run_all_tests" },
             { "command": "phpunit_not_available" }

@@ -26,10 +26,23 @@ class Prefs:
 Prefs.load()
 
 
-def debug_msg(msg):
-    if Prefs.debug == 1:
-        print "[PHPUnit Plugin] " + msg
+class Msgs:
+    operation = 'top-level'
 
+    @staticmethod
+    def debug_msg(msg):
+        if Prefs.debug == 1:
+            print "[PHPUnit Plugin " + Msgs.operation + "()] " + msg
+
+Msgs.debug_msg('')
+Msgs.debug_msg('')
+Msgs.debug_msg('')
+Msgs.debug_msg('=========================================================')
+Msgs.debug_msg('PHPUnit Plugin Reloaded')
+Msgs.debug_msg('---------------------------------------------------------')
+Msgs.debug_msg('')
+Msgs.debug_msg('')
+Msgs.debug_msg('')
 
 # the AsyncProcess class has been cribbed from:
 # https://github.com/maltize/sublime-text-2-ruby-tests/blob/master/run_ruby_test.py
@@ -45,14 +58,14 @@ class AsyncProcess(object):
             # in their tests
             env['PWD'] = cwd
         else:
-            debug_msg("Using EMPTY environment!")
+            Msgs.debug_msg("Using EMPTY environment!")
             env = {}
 
         if Prefs.override_env:
-            debug_msg("Updating environment with " + ' '.join(Prefs.override_env))
+            Msgs.debug_msg("Updating environment with " + ' '.join(Prefs.override_env))
             env.update(Prefs.override_env)
 
-        debug_msg("DEBUG_EXEC: " + ' '.join(cmd))
+        Msgs.debug_msg("DEBUG_EXEC: " + ' '.join(cmd))
 
         if os.name == 'nt':
             # we have to run PHPUnit via the shell to get it to work for everyone on Windows
@@ -85,7 +98,7 @@ class AsyncProcess(object):
             else:
                 self.proc.stderr.close()
                 self.listener.is_running = False
-                self.listener.append_data(self.proc, "\n--- PROCESS COMPLETE ---")
+                sublime.set_timeout(functools.partial(self.listener.append_data, self.proc, "\n--- PROCESS COMPLETE ---"), 0)
                 break
 
 # the StatusProcess class has been cribbed from:
@@ -185,7 +198,7 @@ class CommandBase:
 
 
 class PhpunitCommand(CommandBase):
-    def run(self, path, testfile='', classname=''):
+    def run(self, configfile, testfile='', classname=''):
         self.show_empty_output()
 
         if Prefs.path_to_phpunit is not False:
@@ -201,42 +214,217 @@ class PhpunitCommand(CommandBase):
                 arg += "=" + value
             args.append(arg)
 
-        if len(path) > 0:
+        if os.path.isfile(configfile) > 0:
             args.append("-c")
-            args.append(path[0] + "/" + path[1])
+            args.append(os.path.basename(configfile))
         if classname != '':
             args.append(classname)
         if testfile != '':
             args.append(testfile)
 
-        self.append_data(self, "# Running in folder: " + path[0] + "\n")
+        if os.path.isdir(configfile):
+            folder = configfile
+        else:
+            folder = os.path.dirname(configfile)
+
+        self.append_data(self, "# Running in folder: " + folder + "\n")
         self.append_data(self, "$ " + ' '.join(args) + "\n")
-        self.start_async("Running PHPUnit", args, path[0])
+        self.start_async("Running PHPUnit", args, folder)
 
 
-class AvailableFiles:
+class FoundFiles:
+    cache = {}
+
+    @staticmethod
+    def addToCache(top_folder, filename, result):
+        if top_folder not in FoundFiles.cache:
+            FoundFiles.cache[top_folder] = {}
+        Msgs.debug_msg('Adding ' + result + ' to cache for ' + top_folder)
+        FoundFiles.cache[top_folder][filename] = result
+
+    @staticmethod
+    def removeFromCache(top_folder, filename):
+        Msgs.debug_msg('Removing ' + filename + ' from cache for ' + top_folder)
+        if top_folder not in FoundFiles.cache:
+            Msgs.debug_msg('-- no cache for ' + top_folder)
+            return
+
+        if filename not in FoundFiles.cache[top_folder]:
+            Msgs.debug_msg('-- ' + filename + ' not found in cache')
+            return
+
+        del FoundFiles.cache[top_folder][filename]
+        Msgs.debug_msg('-- ' + filename + ' removed from cache')
+
+    @staticmethod
+    def removeCacheFor(top_folder):
+        Msgs.debug_msg('Removing cache for ' + top_folder)
+        if top_folder not in FoundFiles.cache:
+            Msgs.debug_msg('-- no cache for ' + top_folder)
+            return
+        del FoundFiles.cache[top_folder]
+        Msgs.debug_msg('-- removed cache')
+
+    @staticmethod
+    def removeCache():
+        Msgs.debug_msg('Completely emptying the cache')
+        FoundFiles.cache = {}
+
+    @staticmethod
+    def getFromCache(top_folder, filename):
+        Msgs.debug_msg('Get ' + filename + ' from cache for ' + top_folder)
+        if top_folder not in FoundFiles.cache:
+            Msgs.debug_msg('-- no cache for ' + top_folder)
+            return None
+
+        if filename not in FoundFiles.cache[top_folder]:
+            Msgs.debug_msg('-- ' + filename + ' not found in cache')
+            return None
+
+        Msgs.debug_msg('-- found ' + FoundFiles.cache[top_folder][filename])
+        return FoundFiles.cache[top_folder][filename]
+
+
+class MissingFiles:
+    cache = {}
+
+    @staticmethod
+    def addToCache(top_folder, filename, result):
+        if top_folder not in MissingFiles.cache:
+            MissingFiles.cache[top_folder] = {}
+        Msgs.debug_msg('Adding ' + result + ' to missing files cache for ' + top_folder)
+        MissingFiles.cache[top_folder][filename] = result
+
+    @staticmethod
+    def removeFromCache(top_folder, filename):
+        Msgs.debug_msg('Removing ' + filename + ' from missing files cache for ' + top_folder)
+        if top_folder not in MissingFiles.cache:
+            Msgs.debug_msg('-- no cache for ' + top_folder)
+            return
+
+        if filename not in MissingFiles.cache[top_folder]:
+            Msgs.debug_msg('-- ' + filename + ' not found in cache')
+            return
+
+        del MissingFiles.cache[top_folder][filename]
+        Msgs.debug_msg('-- ' + filename + ' removed from cache')
+
+    @staticmethod
+    def removeCacheFor(top_folder):
+        Msgs.debug_msg('Removing missing files cache for ' + top_folder)
+        if top_folder not in MissingFiles.cache:
+            Msgs.debug_msg('-- no cache for ' + top_folder)
+            return
+        del MissingFiles.cache[top_folder]
+        Msgs.debug_msg('-- removed cache')
+
+    @staticmethod
+    def removeCache():
+        Msgs.debug_msg('Completely emptying the missing files cache')
+        MissingFiles.cache = {}
+
+    @staticmethod
+    def getFromCache(top_folder, filename):
+        Msgs.debug_msg('Get ' + filename + ' from missing files cache for ' + top_folder)
+        if top_folder not in MissingFiles.cache:
+            Msgs.debug_msg('-- no cache for ' + top_folder)
+            return None
+
+        if filename not in MissingFiles.cache[top_folder]:
+            Msgs.debug_msg('-- ' + filename + ' not found in cache')
+            return None
+
+        Msgs.debug_msg('-- found ' + MissingFiles.cache[top_folder][filename])
+        return MissingFiles.cache[top_folder][filename]
+
+
+class FindFiles:
     searched_folders = {}
-    search_results_cache = {}
+    searched_for = {}
     last_search_time = None
 
     @staticmethod
-    def expireSearchResultsCache(forced=False):
-        debug_msg("resetting list of searched folders")
-        AvailableFiles.searched_folders = {}
+    def find(top_folder, search_from, files_to_find):
+        for file_to_find in files_to_find:
+            Msgs.debug_msg("Looking for " + file_to_find)
+            # check the cache - do we already know the answer?
+            result = FindFiles.searchCacheFor(top_folder, file_to_find)
+            if result is not None:
+                return result
 
-        now = datetime.datetime.now()
-        if AvailableFiles.last_search_time is not None:
-            since = AvailableFiles.last_search_time + datetime.timedelta(seconds=60)
-        if AvailableFiles.last_search_time is None or now > since or forced is True:
-            debug_msg("emptying search results cache")
-            AvailableFiles.last_search_time = now
-            AvailableFiles.search_results_cache = {}
+            # check the top folder
+            result = FindFiles.searchTopFolderFor(top_folder, file_to_find)
+            if result is not None:
+                # cache the result
+                FoundFiles.addToCache(top_folder, file_to_find, result)
+                return result
+
+            # check the ProjectFiles map
+            result = ProjectFiles.find(top_folder, file_to_find)
+            if result is not None:
+                FoundFiles.addToCache(top_folder, file_to_find, result)
+                return result
+
+            # check in the places given in hints
+            result = FindFiles.searchNamedPlacesFor(top_folder, Prefs.phpunit_xml_location_hints, file_to_find)
+            if result is not None:
+                # cache the result
+                FoundFiles.addToCache(top_folder, file_to_find, result)
+                return result
+
+            # we have exhausted all of our performance tricks
+            #
+            # we will only continue if the ProjectFiles cache is disabled
+            if top_folder not in ProjectFiles.files:
+                # if we reach this point, we are going to have to search on disk
+                dir_name = search_from
+                if not os.path.isdir(dir_name):
+                    dir_name = os.path.dirname(dir_name)
+
+                # straight-line search - fastest for most people
+                result = FindFiles.searchStraightUpwardsFor(top_folder, dir_name, file_to_find)
+                if result is not None:
+                    # cache the result
+                    FoundFiles.addToCache(top_folder, file_to_find, result)
+                    return result
+
+                # okay, so where is it?
+                result = FindFiles.searchDownwardsFor(top_folder, file_to_find)
+                if result is not None:
+                    # cache the result
+                    FoundFiles.addToCache(top_folder, file_to_find, result)
+                    return result
+
+        # if we get here, we cannot find the file
+        return None
 
     @staticmethod
-    def forgetLastSearchFor(cached_files):
-        for cached_file in cached_files:
-            if cached_file in AvailableFiles.search_results_cache:
-                del AvailableFiles.search_results_cache[cached_file]
+    def searchCacheFor(top_folder, file_to_find):
+        return FoundFiles.getFromCache(top_folder, file_to_find)
+
+    @staticmethod
+    def searchNamedPlacesFor(top_folder, places, file_to_find):
+        for place in places:
+            pathToTest = os.path.join(top_folder, place)
+            filenameToTest = os.path.join(pathToTest, file_to_find)
+            Msgs.debug_msg('Searching for file ' + filenameToTest)
+            if os.path.exists(filenameToTest):
+                return filenameToTest
+        return None
+
+    @staticmethod
+    def searchTopFolderFor(top_folder, file_to_find):
+        Msgs.debug_msg('Searching top folder ' + top_folder + ' for ' + file_to_find)
+        return FindFiles.searchFolderFor(top_folder, file_to_find)
+
+    @staticmethod
+    def searchFolderFor(folder, file_to_find):
+        Msgs.debug_msg('-- Searching ' + folder + ' for ' + file_to_find)
+        filenameToTest = os.path.join(folder, file_to_find)
+        if os.path.exists(filenameToTest):
+            Msgs.debug_msg('---- Found ' + filenameToTest)
+            return filenameToTest
+        return None
 
     @staticmethod
     def reachedTopLevelFolders(oldpath, path):
@@ -257,115 +445,67 @@ class AvailableFiles:
         return False
 
     @staticmethod
-    def searchStraightUpwardsFor(top_folder, path, suffixes):
-        AvailableFiles.expireSearchResultsCache()
-        debug_msg("---- New search straight upwards ----")
+    def searchStraightUpwardsFor(top_folder, path, file_to_find):
+        Msgs.debug_msg("---- New search straight upwards ----")
 
         # do we know where these files are?
-        for suffix in suffixes:
-            if suffix in AvailableFiles.search_results_cache:
-                debug_msg("Found " + suffix + " in cached search results")
-                if AvailableFiles.search_results_cache[suffix] is None:
-                    return None
-                return [suffix, AvailableFiles.search_results_cache[suffix]]
-
-        result = AvailableFiles._searchStraightUpwardsFor(top_folder, '', path, suffixes)
-        if result is None:
-            for suffix in suffixes:
-                AvailableFiles.search_results_cache[suffix] = None
-            return None
-        else:
-            AvailableFiles.search_results_cache[result[0]] = result[1]
-        # print result
-        return result
+        return FindFiles._searchStraightUpwardsFor(top_folder, '', path, file_to_find)
 
     @staticmethod
-    def _searchStraightUpwardsFor(top_folder, oldpath, path, suffixes):
-        debug_msg("Looking in " + path)
-        for suffix in suffixes:
-            filenameToTest = os.path.join(path, suffix)
-            debug_msg("Looking for " + filenameToTest)
-            if os.path.exists(filenameToTest):
-                return [suffix, filenameToTest]
+    def _searchStraightUpwardsFor(top_folder, oldpath, path, file_to_find):
+        Msgs.debug_msg("Looking in " + path)
+        filenameToTest = os.path.join(path, file_to_find)
+        Msgs.debug_msg("Looking for " + filenameToTest)
+        if os.path.exists(filenameToTest):
+            return filenameToTest
 
-        if AvailableFiles.reachedTopLevelFolder(top_folder, oldpath, path):
+        if FindFiles.reachedTopLevelFolder(top_folder, oldpath, path):
             return None
 
-        return AvailableFiles._searchStraightUpwardsFor(top_folder, path, os.path.dirname(path), suffixes)
+        return FindFiles._searchStraightUpwardsFor(top_folder, path, os.path.dirname(path), file_to_find)
 
     @staticmethod
-    def searchUpwardsFor(top_folder, path, suffixes):
-        AvailableFiles.expireSearchResultsCache()
-        debug_msg("---- New search upwards ----")
+    def searchUpwardsFor(top_folder, path, file_to_find):
+        Msgs.debug_msg("---- New search upwards ----")
 
         # do we know where these files are?
-        for suffix in suffixes:
-            if suffix in AvailableFiles.search_results_cache:
-                debug_msg("Found " + suffix + " in cached search results")
-                if AvailableFiles.search_results_cache[suffix] is None:
-                    return None
-                return [suffix, AvailableFiles.search_results_cache[suffix]]
-
-        result = AvailableFiles._searchUpwardsFor(top_folder, '', path, suffixes)
-        if result is None:
-            for suffix in suffixes:
-                AvailableFiles.search_results_cache[suffix] = None
-            return None
-        else:
-            AvailableFiles.search_results_cache[result[0]] = result[1]
-        return result
+        return FindFiles._searchUpwardsFor(top_folder, '', path, file_to_find)
 
     @staticmethod
-    def _searchUpwardsFor(top_folder, oldpath, path, suffixes):
-        for suffix in suffixes:
-            filenameToTest = os.path.join(path, suffix)
-            debug_msg("Looking for " + filenameToTest)
-            if os.path.exists(filenameToTest):
-                return [suffix, filenameToTest]
+    def _searchUpwardsFor(top_folder, oldpath, path, file_to_find):
+        filenameToTest = os.path.join(path, file_to_find)
+        Msgs.debug_msg("Looking for " + filenameToTest)
+        if os.path.exists(filenameToTest):
+            return filenameToTest
 
-        found_path = AvailableFiles._searchDownwardsFor(path, suffixes)
+        found_path = FindFiles._searchDownwardsFor(path, file_to_find)
         if found_path is not None:
             return found_path
 
-        if AvailableFiles.reachedTopLevelFolder(top_folder, oldpath, path):
+        if FindFiles.reachedTopLevelFolder(top_folder, oldpath, path):
             return None
 
-        return AvailableFiles._searchUpwardsFor(top_folder, path, os.path.dirname(path), suffixes)
+        return FindFiles._searchUpwardsFor(top_folder, path, os.path.dirname(path), file_to_find)
 
     @staticmethod
-    def searchDownwardsFor(path, suffixes):
-        AvailableFiles.expireSearchResultsCache()
-        debug_msg("---- New search downwards ----")
+    def searchDownwardsFor(path, file_to_find):
+        Msgs.debug_msg("---- New search downwards ----")
 
         # do we know where these files are?
-        for suffix in suffixes:
-            if suffix in AvailableFiles.search_results_cache:
-                debug_msg("Found " + suffix + " in cached search results")
-                if AvailableFiles.search_results_cache[suffix] is None:
-                    return None
-                return [suffix, AvailableFiles.search_results_cache[suffix]]
-
-        result = AvailableFiles._searchDownwardsFor(path, suffixes)
-        if result is None:
-            for suffix in suffixes:
-                AvailableFiles.search_results_cache[suffix] = None
-            return None
-        else:
-            AvailableFiles.search_results_cache[result[0]] = result[1]
-            # print result
-            return result
+        return FindFiles._searchDownwardsFor(path, file_to_find)
 
     @staticmethod
-    def _searchDownwardsFor(path, suffixes):
+    def _searchDownwardsFor(path, file_to_find):
+        Msgs.debug_msg('Looking in ' + path)
         # does the path exist?
         if not os.path.exists(path):
             return None
 
         # does the file exist at this level?
-        for suffix in suffixes:
-            filenameToTest = os.path.join(path, suffix)
-            if os.path.exists(filenameToTest):
-                return [suffix, filenameToTest]
+        filenameToTest = os.path.join(path, file_to_find)
+        Msgs.debug_msg('Looking for ' + filenameToTest)
+        if os.path.exists(filenameToTest):
+            return filenameToTest
 
         # no it does not
         #
@@ -390,72 +530,103 @@ class AvailableFiles:
                 # print "looking at dir " + path + ' ' + subdir
                 pathToSearch = os.path.join(root, subdir)
                 # print "looking at  - " + root + ' ' + subdir
-                if pathToSearch in AvailableFiles.searched_folders:
-                    # print "Already searched " + pathToSearch + "; skipping"
-                    continue
-                AvailableFiles.searched_folders[pathToSearch] = True
-                # if we get here, we have not discarded this folder yet
-                for suffix in suffixes:
-                    filenameToTest = os.path.join(pathToSearch, suffix)
-                    # print "Looking in subfolders for " + filenameToTest
-                    if os.path.exists(filenameToTest):
-                        # print "Found " + filenameToTest
-                        return [suffix, filenameToTest]
+                FindFiles.searched_folders[pathToSearch] = True
+                filenameToTest = os.path.join(pathToSearch, file_to_find)
+                # print "Looking in subfolders for " + filenameToTest
+                if os.path.exists(filenameToTest):
+                    # print "Found " + filenameToTest
+                    Msgs.debug_msg('-- found ' + filenameToTest)
+                    return filenameToTest
                 # make sure we're not taking too long
                 since = datetime.datetime.now()
                 if since - start > datetime.timedelta(seconds=Prefs.max_search_secs):
                     sublime.status_message("Timeout whilst searching for phpunit.xml")
                     return None
 
+        Msgs.debug_msg('-- no match found')
         return None
 
+
+class ProjectFiles:
+    files = {}
+
     @staticmethod
-    def searchNamedPlacesFor(top_folder, places, suffixes):
-        for place in places:
-            pathToTest = os.path.join(top_folder, place)
-            for suffix in suffixes:
-                filenameToTest = os.path.join(pathToTest, suffix)
-                if os.path.exists(filenameToTest):
-                    return [suffix, filenameToTest]
-        return None
+    def buildFilesList(path):
+        Msgs.debug_msg('Building list of files under ' + path)
+        # does the path exist?
+        if not os.path.exists(path):
+            return None
+
+        ProjectFiles.files[path] = []
+
+        # how long will this take? let's find out
+        start = datetime.datetime.now()
+
+        # we're going to build up a cache of the files inside this project
+        i = 0
+        for root, dirs, files in os.walk(path):
+            for name in files:
+                ProjectFiles.files[path].append(os.path.join(root, name))
+                i = i + 1
+
+        end = datetime.datetime.now()
+        duration = (end - start)
+        Msgs.debug_msg('-- took ' + str(duration.seconds) + '.' + str(duration.microseconds) + ' second(s) to build')
+        Msgs.debug_msg('-- found '+ str(i) + ' file(s)')
+        # print ProjectFiles.files[path]
+
+    @staticmethod
+    def find(top_folder, filename):
+        Msgs.debug_msg('Searching ProjectFiles cache for ' + filename)
+        if top_folder not in ProjectFiles.files:
+            return None
+
+        result = [x for x in ProjectFiles.files[top_folder] if filename in x]
+        if len(result) == 0:
+            Msgs.debug_msg('-- none found')
+            return None
+        Msgs.debug_msg('-- found ' + result[0])
+        return result[0]
 
 
 class ActiveFile:
     def is_test_buffer(self):
+        Msgs.debug_msg('Is buffer a file containing tests?')
         filename = self.file_name()
         if not os.path.isfile(filename):
-            debug_msg("Buffer is not a test file; is not a real file")
+            Msgs.debug_msg("-- Buffer is not a real file; unsaved new buffer?")
             return False
         filename = os.path.splitext(filename)[0]
         if filename.endswith('Test'):
-            debug_msg("Buffer is a test file")
+            Msgs.debug_msg("-- Buffer is a test file")
             return True
-        debug_msg("Buffer is not a test file")
+        Msgs.debug_msg("-- Buffer is not a test file")
         return False
 
     def is_tests_buffer(self):
+        Msgs.debug_msg('Is buffer a file containing a testsuite?')
         filename = self.file_name()
         if not os.path.isfile(filename):
-            debug_msg("Buffer is not a testsuite file; is not a real file")
+            Msgs.debug_msg("-- Buffer is not a real file; unsaved new buffer?")
             return False
         filename = os.path.splitext(filename)[0]
         if filename.endswith('Tests'):
-            debug_msg("Buffer is a testsuite file")
+            Msgs.debug_msg("Buffer is a testsuite file")
             return True
-        debug_msg("Buffer is not a testsuite file")
+        Msgs.debug_msg("Buffer is not a testsuite file")
         return False
 
     def is_phpunitxml(self):
         # is this a phpunit.xml file?
         filename = self.file_name()
         if not os.path.isfile(filename):
-            debug_msg("Buffer is not phpunit.xml; is not a real file")
+            Msgs.debug_msg("Buffer is not phpunit.xml; is not a real file")
             return False
         filename = os.path.basename(filename)
         if filename == 'phpunit.xml' or filename == 'phpunit.xml.dist':
-            debug_msg("Buffer is a phpunit.xml file")
+            Msgs.debug_msg("Buffer is a phpunit.xml file")
             return True
-        debug_msg("Buffer is not a phpunit.xml file")
+        Msgs.debug_msg("Buffer is not a phpunit.xml file")
         return False
 
     def determineClassToTest(self):
@@ -473,35 +644,12 @@ class ActiveFile:
         return None
 
     def findPhpunitXml(self, search_from, folders={}):
-        debug_msg("Looking for phpunit.xml of some kind")
-        dir_name = search_from
-        if not os.path.isdir(dir_name):
-            dir_name = os.path.dirname(dir_name)
+        Msgs.debug_msg("Looking for phpunit.xml of some kind")
 
+        # what are we looking for?
         files_to_find = ['phpunit.xml', 'phpunit.xml.dist']
-        debug_msg("Looking for " + ', '.join(files_to_find))
 
-        # check in the places given in hints
-        result = AvailableFiles.searchNamedPlacesFor(self.top_folder(), Prefs.phpunit_xml_location_hints, files_to_find)
-        if result is not None:
-            return [os.path.dirname(result[1]), os.path.basename(result[1])]
-
-        # empty the cached results so that we can try again
-        AvailableFiles.forgetLastSearchFor(files_to_find)
-
-        # straight-line search - fastest for most people
-        result = AvailableFiles.searchStraightUpwardsFor(self.top_folder(), dir_name, files_to_find)
-        if result is not None:
-            return [os.path.dirname(result[1]), os.path.basename(result[1])]
-
-        # empty the cached results so that we can try again
-        AvailableFiles.forgetLastSearchFor(files_to_find)
-
-        # okay, so where is it?
-        result = AvailableFiles.searchDownwardsFor(self.top_folder(), files_to_find)
-        if result is not None:
-            return [os.path.dirname(result[1]), os.path.basename(result[1])]
-        return None
+        return FindFiles.find(self.top_folder(), search_from, files_to_find)
 
     def error_message(self, message):
         sublime.status_message(message)
@@ -519,7 +667,7 @@ class ActiveFile:
         return "Only works if you have a ST2 project open"
 
     def not_php_file(self, syntax):
-        debug_msg(syntax)
+        Msgs.debug_msg(syntax)
         matches = re.search("/([^/]+).tmLanguage", syntax)
         if matches is not None:
             syntax = matches.group(1)
@@ -533,13 +681,13 @@ class ActiveView(ActiveFile):
         # 'HTML' even in a PHP buffer
         ext = os.path.splitext(self.file_name())[1]
         if ext == '.php':
-            debug_msg("Buffer is a PHP buffer")
+            Msgs.debug_msg("Buffer is a PHP buffer")
             return True
         # is this a PHP buffer?
         if re.search('.+\PHP.tmLanguage', self.view.settings().get('syntax')):
             return True
         # if we get here, we're not sure what else to try
-        debug_msg("Buffer is not a PHP buffer; extension is: " + ext + "; syntax is: " + self.view.settings().get('syntax'))
+        Msgs.debug_msg("Buffer is not a PHP buffer; extension is: " + ext + "; syntax is: " + self.view.settings().get('syntax'))
         return False
 
     def has_project_open(self):
@@ -562,14 +710,14 @@ class ActiveView(ActiveFile):
             # problem - we didn't find ourselves in the list of open folders
             # fallback to using heuristics instead
             path = os.path.dirname(self.file_name())
-            while not AvailableFiles.reachedTopLevelFolders(oldpath, path):
+            while not FindFiles.reachedTopLevelFolders(oldpath, path):
                 oldpath = path
                 path = os.path.dirname(path)
-        debug_msg("Top folder for this project is: " + path)
+        Msgs.debug_msg("Top folder for this project is: " + path)
         return path
 
     def find_tested_file(self):
-        debug_msg("Looking for tested file")
+        Msgs.debug_msg("Looking for tested file")
         fq_classname = self.determine_full_class_name()
         if fq_classname is None:
             return None
@@ -578,23 +726,23 @@ class ActiveView(ActiveFile):
 
         filename = fq_classname + '.php'
 
-        debug_msg("Looking for tested file: " + os.path.basename(filename))
+        Msgs.debug_msg("Looking for tested file: " + os.path.basename(filename))
 
         files_to_find = []
         files_to_find.append(filename)
         files_to_find.append(os.path.basename(filename))
 
         path_to_search = os.path.dirname(self.file_name())
-        path = AvailableFiles.searchUpwardsFor(self.top_folder(), path_to_search, files_to_find)
+        path = FindFiles.find(self.top_folder(), path_to_search, files_to_find)
         if path is None:
             return None
 
-        return [path[1], fq_classname]
+        return [path, fq_classname]
 
     def find_test_file(self):
-        debug_msg("Looking for test file")
+        Msgs.debug_msg("Looking for test file")
         classname = self.determine_full_class_name()
-        debug_msg("classname is: " + classname)
+        Msgs.debug_msg("classname is: " + classname)
         if classname is None:
             return None
 
@@ -605,14 +753,14 @@ class ActiveView(ActiveFile):
         files_to_find.append(filename)
         files_to_find.append(os.path.basename(filename))
 
-        debug_msg("Looking for test files: " + ', '.join(files_to_find))
+        Msgs.debug_msg("Looking for test files: " + ', '.join(files_to_find))
 
         path_to_search = os.path.dirname(self.file_name())
-        path = AvailableFiles.searchUpwardsFor(self.top_folder(), path_to_search, files_to_find)
+        path = FindFiles.find(self.top_folder(), path_to_search, files_to_find)
         if path is None:
             return None
 
-        return [path[1], classname]
+        return [path, classname]
 
     def determine_full_class_name(self):
         namespace = self.extract_namespace()
@@ -643,6 +791,7 @@ class ActiveView(ActiveFile):
             return self.view.substr(r)
         # If we get here, then there are no classes in the current window
         return None
+
 
 class ActiveWindow(ActiveFile):
     def file_name(self):
@@ -679,13 +828,17 @@ class PhpunitTextBase(sublime_plugin.TextCommand, ActiveView):
             active_group = (active_group + 1) % 2
             if active_group >= num_groups:
                 active_group = num_groups - 1
-            debug_msg("switching to group " + str(active_group))
+            Msgs.debug_msg("switching to group " + str(active_group))
             self.view.window().focus_group(active_group)
 
 
-class PhpunitTestThisClass(PhpunitTextBase):
+class PhpunitRunTests(PhpunitTextBase):
     def run(self, args):
-        file_to_test = self.find_test_file()
+        Msgs.operation = "PhpunitRunTestsClass.run"
+        if self.is_test_buffer() or self.is_tests_buffer():
+            file_to_test = [self.view.file_name()]
+        else:
+            file_to_test = self.find_test_file()
         if file_to_test is None:
             self.error_message(self.cannot_find_test_file())
             return
@@ -696,47 +849,65 @@ class PhpunitTestThisClass(PhpunitTextBase):
             return
 
         cmd = PhpunitCommand(self.view.window())
-        cmd.run(path, file_to_test[0], file_to_test[1])
+        cmd.run(path, file_to_test[0])
 
     def description(self):
+        Msgs.operation = "PhpunitRunTestsClass.description"
+        # are we a window containing tests?
         if self.is_test_buffer() or self.is_tests_buffer():
-            return None
+            return 'Run These Tests...'
+        # we are a class ... need to find the tests
         test_file = self.find_test_file()
         if test_file is None:
             return self.cannot_find_test_file()
+        # we need a phpunit.xml file first
         path = self.findPhpunitXml(test_file[0], self.view.window().folders())
         if path is None:
             return self.cannot_find_xml()
         return 'Test This Class...'
 
     def is_enabled(self):
-        if not self.is_php_buffer():
-            return False
-        if self.is_test_buffer() or self.is_tests_buffer():
-            return False
-        test_file = self.find_test_file()
-        if test_file is None:
-            return False
-        path = self.findPhpunitXml(test_file[0], self.view.window().folders())
-        if path is None:
-            return False
-        return True
-
-    def is_visible(self):
+        Msgs.operation = "PhpunitRunTestsClass.is_enabled"
         if not self.has_project_open():
             return False
         if not self.is_php_buffer():
             return False
+
         if self.is_test_buffer() or self.is_tests_buffer():
+            test_file_to_open = self.view.file_name()
+            tested_file_to_open = self.find_tested_file()
+        else:
+            test_file_to_open = self.find_test_file()
+            tested_file_to_open = self.view.file_name()
+
+        if test_file_to_open is None or tested_file_to_open is None:
             return False
-        test_file = self.find_test_file()
-        if test_file is None:
+
+        return True
+
+    def is_visible(self):
+        Msgs.operation = "PhpunitRunTestsClass.is_visible"
+        if not self.has_project_open():
             return False
+        if not self.is_php_buffer():
+            return False
+
+        if self.is_test_buffer() or self.is_tests_buffer():
+            test_file_to_open = self.view.file_name()
+            tested_file_to_open = self.find_tested_file()
+        else:
+            test_file_to_open = self.find_test_file()
+            tested_file_to_open = self.view.file_name()
+
+        if test_file_to_open is None or tested_file_to_open is None:
+            return False
+
         return True
 
 
 class PhpunitOpenTestClass(PhpunitTextBase):
     def run(self, args):
+        Msgs.operation = "PhpunitOpenTestClass.run"
         file_to_open = self.find_test_file()
         if file_to_open is None:
             self.error_message(self.cannot_find_test_file())
@@ -749,11 +920,13 @@ class PhpunitOpenTestClass(PhpunitTextBase):
         self.view.window().open_file(file_to_open[0])
 
     def description(self):
+        Msgs.operation = "PhpunitOpenTestClass.description"
         if self.is_enabled():
             return 'Open Test Class'
         return self.cannot_find_test_file()
 
     def is_enabled(self):
+        Msgs.operation = "PhpunitOpenTestClass.is_enabled"
         if not self.is_php_buffer():
             return False
         if self.is_test_buffer() or self.is_tests_buffer():
@@ -764,6 +937,7 @@ class PhpunitOpenTestClass(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        Msgs.operation = "PhpunitOpenTestClass.is_visible"
         if not self.has_project_open():
             return False
         if not self.is_php_buffer():
@@ -775,6 +949,7 @@ class PhpunitOpenTestClass(PhpunitTextBase):
 
 class PhpunitOpenClassBeingTested(PhpunitTextBase):
     def run(self, args):
+        Msgs.operation = "PhpunitOpenClassBeingTested.run"
         file_to_open = self.find_tested_file()
         if file_to_open is None:
             self.error_message(self.cannot_find_tested_file())
@@ -783,16 +958,20 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
         # where will we open the file?
         self.toggle_active_group()
 
+        # print file_to_open
+
         # open the file
         self.view.window().open_file(file_to_open[0])
 
     def description(self):
+        Msgs.operation = "PhpunitOpenClassBeingTested.description"
         file_to_open = self.find_tested_file()
         if file_to_open is None:
             return self.cannot_find_tested_file()
         return 'Open Class Being Tested'
 
     def is_enabled(self):
+        Msgs.operation = "PhpunitOpenClassBeingTested.is_enabled"
         if not self.is_php_buffer():
             return False
         if not self.is_test_buffer():
@@ -805,6 +984,7 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        Msgs.operation = "PhpunitOpenClassBeingTested.is_visible"
         if not self.has_project_open():
             return False
         if not self.is_php_buffer():
@@ -816,10 +996,17 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
         return True
 
 
-class PhpunitToggleClassTestClass(PhpunitOpenClassBeingTested):
+class PhpunitToggleClassTestClass(PhpunitTextBase):
     def run(self, args):
-        test_file_to_open = self.find_test_file()
-        tested_file_to_open = self.find_tested_file()
+        Msgs.operation = "PhpunitToggleClassTestClass.run"
+        if not self.is_php_buffer():
+            return False
+        if self.is_test_buffer() or self.is_tests_buffer():
+            test_file_to_open = self.view.file_name()
+            tested_file_to_open = self.find_tested_file()
+        else:
+            test_file_to_open = self.find_test_file()
+            tested_file_to_open = self.view.file_name()
 
         if test_file_to_open is None and tested_file_to_open is None:
             self.error_message(self.cannot_find_test_file())
@@ -833,25 +1020,42 @@ class PhpunitToggleClassTestClass(PhpunitOpenClassBeingTested):
         self.view.window().open_file(file_to_open[0])
 
     def is_enabled(self):
+        Msgs.operation = "PhpunitToggleClassTestClass.is_enabled"
         if not self.is_php_buffer():
             return False
-        path_tested = self.find_tested_file()
-        path_test = self.find_test_file()
+        if self.is_test_buffer() or self.is_tests_buffer():
+            path_tested = self.find_tested_file()
+            path_test = self.view.file_name()
+        else:
+            path_tested = self.view.file_name()
+            path_test = self.find_test_file()
         if path_tested is None and path_test is None:
             return False
         return True
 
+    def is_visible(self):
+        return self.is_enabled
+
+    def description(self):
+        return 'Toggle Between Code And Test File'
+
 
 class PhpunitOpenPhpunitXml(PhpunitTextBase):
+    file_to_open = None
+
     def run(self, args):
+        Msgs.operation = "PhpunitOpenPhpunitXml.run"
+        print self.file_to_open
         if self.is_test_buffer() or self.is_tests_buffer():
             filename = self.view.file_name()
         else:
             filename = self.find_test_file()
             if filename is not None:
                 filename = filename[0]
-        path = self.findPhpunitXml(filename, self.view.window().folders())
-        if path is None:
+            else:
+                filename = self.view.file_name()
+        file_to_open = self.findPhpunitXml(filename, self.view.window().folders())
+        if file_to_open is None:
             self.cannot_find_xml()
             return
 
@@ -859,12 +1063,18 @@ class PhpunitOpenPhpunitXml(PhpunitTextBase):
         self.toggle_active_group()
 
         # open the file
-        self.view.window().open_file(os.path.join(path[0], path[1]))
+        self.view.window().open_file(file_to_open)
 
     def description(self):
         return 'Open phpunit.xml'
 
     def is_enabled(self):
+        if self.file_to_open is not None:
+            return True
+        return False
+
+    def is_visible(self):
+        Msgs.operation = "PhpunitOpenPhpunitXml.is_enabled"
         if not self.has_project_open():
             return False
         if not self.is_php_buffer():
@@ -877,28 +1087,27 @@ class PhpunitOpenPhpunitXml(PhpunitTextBase):
             filename = self.find_test_file()
             if filename is not None:
                 filename = filename[0]
-        if filename is None:
-            return False
+            else:
+                filename = self.view.file_name()
         path = self.findPhpunitXml(filename, self.view.window().folders())
         if path is None:
             return False
+        self.file_to_open = path
         return True
-
-    def is_visible(self):
-        return self.is_enabled()
 
 
 class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
     def run(self, args):
+        Msgs.operation = "PhpunitRunThisPhpunitXmlCommand.run"
         phpunit_xml_file = self.file_name()
-        dir_to_cd = os.path.dirname(phpunit_xml_file)
         cmd = PhpunitCommand(self.view.window())
-        cmd.run([dir_to_cd, os.path.basename(phpunit_xml_file)])
+        cmd.run(phpunit_xml_file)
 
     def is_enabled(self):
         return self.is_visible()
 
     def is_visible(self):
+        Msgs.operation = "PhpunitRunThisPhpunitXmlCommand.is_visible"
         if not self.has_project_open():
             return False
         return self.is_phpunitxml()
@@ -907,51 +1116,17 @@ class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
         return 'Run Using This XML File...'
 
 
-class PhpunitRunTheseTestsCommand(PhpunitTextBase):
-    def run(self, args):
-        path = self.findPhpunitXml(self.view.file_name(), self.view.window().folders())
-        if path is None:
-            self.error_message(self.cannot_find_xml())
-            return
-
-        file_to_test = self.determineTestFile()
-        cmd = PhpunitCommand(self.view.window())
-        cmd.run(path, file_to_test)
-
-    def description(self):
-        path = self.findPhpunitXml(self.view.file_name(), self.view.window().folders())
-        if path is None:
-            return self.cannot_find_xml()
-        return 'Run These Tests...'
-
-    def is_enabled(self):
-        if not self.is_php_buffer():
-            return False
-        if not self.is_test_buffer() and not self.is_tests_buffer():
-            return False
-        path = self.findPhpunitXml(self.view.file_name(), self.view.window().folders())
-        if path is None:
-            return False
-        return True
-
-    def is_visible(self):
-        if not self.has_project_open():
-            return False
-        if not self.is_php_buffer():
-            return False
-        if not self.is_test_buffer() and not self.is_tests_buffer():
-            return False
-        return True
-
-
 class PhpunitRunAllTestsCommand(PhpunitTextBase):
     def run(self, args):
+        Msgs.operation = "PhpunitRunAllTestsCommand.run"
         if self.is_test_buffer() or self.is_tests_buffer():
             filename = self.view.file_name()
         else:
             filename = self.find_test_file()
             if filename is not None:
                 filename = filename[0]
+            else:
+                filename = self.view.file_name()
         path = self.findPhpunitXml(filename, self.view.window().folders())
         if path is None:
             self.cannot_find_xml()
@@ -963,6 +1138,7 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
         return 'Run All Unit Tests...'
 
     def is_enabled(self):
+        Msgs.operation = "PhpunitRunAllTestsCommand.is_enabled"
         if not self.has_project_open():
             return False
         if not self.is_php_buffer():
@@ -975,8 +1151,8 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
             filename = self.find_test_file()
             if filename is not None:
                 filename = filename[0]
-        if filename is None:
-            return False
+            else:
+                filename = self.view.file_name()
         path = self.findPhpunitXml(filename, self.view.window().folders())
         if path is None:
             return False
@@ -988,6 +1164,7 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
 
 class PhpunitNotAvailableCommand(PhpunitTextBase):
     def is_visible(self):
+        Msgs.operation = "PhpunitNotAvailableCommand.is_visible"
         if not self.has_project_open():
             return True
         if self.is_php_buffer():
@@ -1000,6 +1177,7 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
         return False
 
     def description(self):
+        Msgs.operation = "PhpunitNotAvailableCommand.is_description"
         if not self.has_project_open():
             return self.not_in_project()
         if not self.is_php_buffer():
@@ -1009,8 +1187,11 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
 
 class PhpunitFlushCacheCommand(PhpunitTextBase):
     def is_visible(self):
+        Msgs.operation = "PhpunitFlushCacheCommand.is_visible"
         Prefs.load()
-        AvailableFiles.expireSearchResultsCache(forced=True)
+        FoundFiles.removeCache()
+        MissingFiles.removeCache()
+        ProjectFiles.buildFilesList(self.top_folder())
         return False
 
 
@@ -1021,16 +1202,18 @@ class PhpunitWindowBase(sublime_plugin.WindowCommand, ActiveWindow):
 
 class RunPhpunitOnXmlCommand(PhpunitWindowBase):
     def run(self, paths=[]):
+        Msgs.operation = "RunPhpunitOnXmlCommand.run"
         self.determine_filename(paths)
         filename = self.file_name()
         dir_to_cd = os.path.dirname(filename)
         cmd = PhpunitCommand(self.window)
-        cmd.run([dir_to_cd, os.path.basename(filename)])
+        cmd.run(filename)
 
     def is_enabled(self, paths=[]):
         return self.is_visible(paths)
 
     def is_visible(self, paths=[]):
+        Msgs.operation = "RunPhpunitOnXmlCommand.is_visible"
         self.determine_filename(paths)
         return self.is_phpunitxml()
 
