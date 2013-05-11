@@ -40,6 +40,10 @@ class AsyncProcess(object):
         self.listener = listener
         if Prefs.copy_env:
             env = os.environ.copy()
+
+            # add 'PWD' to the environment, for those folks who use it
+            # in their tests
+            env['PWD'] = cwd
         else:
             debug_msg("Using EMPTY environment!")
             env = {}
