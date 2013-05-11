@@ -24,6 +24,10 @@
         "command": "phpunit_open_class_being_tested"
     },
     {
+        "caption": "PHPUnit: Toggle Class Being Tested and Test Class",
+        "command": "phpunit_toggle_class_test_class"
+    },
+    {
         "caption": "PHPUnit: Run All Tests",
         "command": "phpunit_run_all_tests"
     }

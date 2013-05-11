@@ -812,6 +812,32 @@ class PhpunitOpenClassBeingTested(PhpunitTextBase):
         return True
 
 
+class PhpunitToggleClassTestClass(PhpunitOpenClassBeingTested):
+    def run(self, args):
+        test_file_to_open = self.find_test_file()
+        tested_file_to_open = self.find_tested_file()
+
+        if test_file_to_open is None and tested_file_to_open is None:
+            self.error_message(self.cannot_find_test_file())
+            return
+
+        file_to_open = test_file_to_open if test_file_to_open is not None else tested_file_to_open
+        # where will we open the file?
+        self.toggle_active_group()
+
+        # open the file
+        self.view.window().open_file(file_to_open[0])
+
+    def is_enabled(self):
+        if not self.is_php_buffer():
+            return False
+        path_tested = self.find_tested_file()
+        path_test = self.find_test_file()
+        if path_tested is None and path_test is None:
+            return False
+        return True
+
+
 class PhpunitOpenPhpunitXml(PhpunitTextBase):
     def run(self, args):
         if self.is_test_buffer() or self.is_tests_buffer():
