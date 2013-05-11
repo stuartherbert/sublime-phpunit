@@ -199,7 +199,7 @@ class PhpunitCommand(CommandBase):
 
         if len(path) > 0:
             args.append("-c")
-            args.append(path[1])
+            args.append(path[0] + "/" + path[1])
         if classname != '':
             args.append(classname)
         if testfile != '':
