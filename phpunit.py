@@ -619,7 +619,7 @@ class ActiveView(ActiveFile):
         files_to_find = []
         files_to_find.append(filename)
         files_to_find.append(os.path.basename(filename))
-        files_to_find.append(os.path.basename(self.view.file_name()))
+        files_to_find.append(os.path.basename(self.view.file_name())[:-4] + 'Test.php')
 
         Msgs.debug_msg("Looking for test files: " + ', '.join(files_to_find))
 
