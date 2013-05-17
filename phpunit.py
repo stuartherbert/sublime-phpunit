@@ -56,7 +56,7 @@ class AsyncProcess(object):
 
             # add 'PWD' to the environment, for those folks who use it
             # in their tests
-            env['PWD'] = cwd
+            # env['PWD'] = cwd
         else:
             Msgs.debug_msg("Using EMPTY environment!")
             env = {}
