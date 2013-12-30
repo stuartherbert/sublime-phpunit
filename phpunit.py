@@ -412,6 +412,10 @@ class ProjectFiles:
         if not os.path.exists(path):
             return None
 
+        # is the path root folder?
+        if  path == os.path.dirname(path):
+            return None
+
         ProjectFiles.files[path] = []
 
         # how long will this take? let's find out
