@@ -683,7 +683,7 @@ class ActiveWindow(ActiveFile):
 
     def is_php_buffer(self):
         ext = os.path.splitext(self.file_name())[1]
-        if ext == 'php':
+        if ext == '.php':
             return True
         return False
 
