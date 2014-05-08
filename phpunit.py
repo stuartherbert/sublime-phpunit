@@ -10,8 +10,6 @@ import sublime
 import sublime_plugin
 import threading
 
-from .commands import *
-
 class Prefs:
     @staticmethod
     def load():
@@ -46,6 +44,17 @@ Msgs.debug_msg('---------------------------------------------------------')
 Msgs.debug_msg('')
 Msgs.debug_msg('')
 Msgs.debug_msg('')
+
+
+class EraseViewCommand(sublime_plugin.TextCommand):
+    def run(self, edit, size=0):
+        self.view.erase(edit, sublime.Region(0, size))
+
+
+class InsertViewCommand(sublime_plugin.TextCommand):
+    def run(self, edit, string=''):
+        self.view.insert(edit, self.view.size(), string)
+
 
 # the AsyncProcess class has been cribbed from:
 # https://github.com/maltize/sublime-text-2-ruby-tests/blob/master/run_ruby_test.py
