@@ -61,6 +61,9 @@ class InsertViewCommand(sublime_plugin.TextCommand):
 
 
 class AsyncProcess(object):
+    stdout_complete = False
+    stderr_complete = False
+
     def __init__(self, cmd, cwd, listener):
         self.listener = listener
         if Prefs.copy_env:
@@ -100,7 +103,9 @@ class AsyncProcess(object):
                 self.listener.append_data(data)
             else:
                 self.proc.stdout.close()
+                self.stdout_complete = True
                 self.listener.is_running = False
+                self.is_process_complete()
                 break
 
     def read_stderr(self):
@@ -110,10 +115,14 @@ class AsyncProcess(object):
                 self.listener.append_data(data)
             else:
                 self.proc.stderr.close()
+                self.stderr_complete = True
                 self.listener.is_running = False
-                self.listener.append_data("\n--- PROCESS COMPLETE ---")
+                self.is_process_complete()
                 break
 
+    def is_process_complete(self):
+        if self.stdout_complete and self.stderr_complete:
+                self.listener.append_data("\n--- PROCESS COMPLETE ---")
 
 class OutputView(object):
     def __init__(self, name, window, edit=None):
