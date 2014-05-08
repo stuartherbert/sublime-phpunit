@@ -953,7 +953,7 @@ class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
         self.edit = edit
         Msgs.operation = "PhpunitRunThisPhpunitXmlCommand.run"
         phpunit_xml_file = self.file_name()
-        cmd = PhpunitCommand(self.view.window())
+        cmd = PhpunitCommand(self.view.window(), edit)
         cmd.run(phpunit_xml_file)
 
     def is_enabled(self):
@@ -986,7 +986,7 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
     def run(self, edit):
         self.edit = edit
         Msgs.operation = "PhpunitRunAllTestsCommand.run"
-        cmd = PhpunitCommand(self.view.window())
+        cmd = PhpunitCommand(self.view.window(), edit)
         cmd.run(self.path_to_config)
 
     def description(self):
