@@ -109,10 +109,10 @@ class AsyncProcess(object):
         while True:
             data = self.proc.stdout.read().decode('utf-8')
             if data != "":
-                if Prefs.st2:
-                    sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
-                else:
-                    self.listener.append_data(data)
+#                if Prefs.st2:
+#                    sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
+#                else:
+                self.listener.append_data(data)
             else:
                 self.proc.stdout.close()
                 self.stdout_complete = True
@@ -124,10 +124,10 @@ class AsyncProcess(object):
         while True:
             data = self.proc.stderr.read().decode('utf-8')
             if data != "":
-                if Prefs.st2:
-                    sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
-                else:
-                    self.listener.append_data(data)
+#                if Prefs.st2:
+#                    sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
+#                else:
+                self.listener.append_data(data)
             else:
                 self.proc.stderr.close()
                 self.stderr_complete = True
@@ -138,10 +138,10 @@ class AsyncProcess(object):
     def is_process_complete(self):
         if self.stdout_complete and self.stderr_complete:
             data = "\n--- PROCESS COMPLETE ---"
-            if Prefs.st2:
-                sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
-            else:
-                self.listener.append_data(data)
+#            if Prefs.st2:
+#                sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
+#            else:
+            self.listener.append_data(data)
             self.proc.wait()
 
 
@@ -182,6 +182,35 @@ class OutputView(object):
         self.output_view.set_read_only(True)
 
 
+class CompatibilityOutputView:
+    def __init__(self, name, window, edit=None):
+        self.wrapped_view = OutputView(name, window, edit)
+
+    def show_output(self):
+        if Prefs.st2:
+            sublime.set_timeout(functools.partial(self.wrapped_view.show_output), 0)
+        else:
+            self.wrapped_view.show_output()
+
+    def show_empty_output(self):
+        if Prefs.st2:
+            sublime.set_timeout(functools.partial(self.wrapped_view.show_empty_output), 0)
+        else:
+            self.wrapped_view.show_empty_output()
+
+    def clear_output_view(self):
+        if Prefs.st2:
+            sublime.set_timeout(functools.partial(self.wrapped_view.clear_output_view), 0)
+        else:
+            self.wrapped_view.clear_output_view()
+
+    def append_data(self, data):
+        if Prefs.st2:
+            sublime.set_timeout(functools.partial(self.wrapped_view.append_data, data), 0)
+        else:
+            self.wrapped_view.append_data(data)
+
+
 class CommandBase:
     def __init__(self, window, edit):
         self.window = window
@@ -189,13 +218,13 @@ class CommandBase:
 
     def show_output(self):
         if not hasattr(self, 'output_view'):
-            self.output_view = OutputView('phpunit', self.window, self.edit)
+            self.output_view = CompatibilityOutputView('phpunit', self.window, self.edit)
 
         self.output_view.show_output()
 
     def show_empty_output(self):
         if not hasattr(self, 'output_view'):
-            self.output_view = OutputView('phpunit', self.window, self.edit)
+            self.output_view = CompatibilityOutputView('phpunit', self.window, self.edit)
 
         self.output_view.clear_output_view()
         self.output_view.show_output()
