@@ -123,6 +123,7 @@ class AsyncProcess(object):
     def is_process_complete(self):
         if self.stdout_complete and self.stderr_complete:
                 self.listener.append_data("\n--- PROCESS COMPLETE ---")
+                self.proc.terminate()
 
 class OutputView(object):
     def __init__(self, name, window, edit=None):
