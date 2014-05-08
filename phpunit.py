@@ -91,9 +91,9 @@ class AsyncProcess(object):
             # Popen works properly on OSX and Linux
             self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
         if self.proc.stdout:
-            threading.Thread(target=self.read_stdout,daemon=False).start()
+            threading.Thread(target=self.read_stdout).start()
         if self.proc.stderr:
-            threading.Thread(target=self.read_stderr,daemon=False).start()
+            threading.Thread(target=self.read_stderr).start()
 
 
     def read_stdout(self):
