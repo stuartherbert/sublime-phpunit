@@ -137,11 +137,13 @@ class AsyncProcess(object):
 
     def is_process_complete(self):
         if self.stdout_complete and self.stderr_complete:
-                if Prefs.st2:
-                    sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
-                else:
-                    self.listener.append_data("\n--- PROCESS COMPLETE ---")
-                self.proc.terminate()
+            data = "\n--- PROCESS COMPLETE ---"
+            if Prefs.st2:
+                sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
+            else:
+                self.listener.append_data(data)
+            self.proc.wait()
+
 
 class OutputView(object):
     def __init__(self, name, window, edit=None):
