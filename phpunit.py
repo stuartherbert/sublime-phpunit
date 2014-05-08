@@ -26,7 +26,7 @@ class Prefs:
         Prefs.override_env = settings.get('override_env', {})
 
         # which version of ST are we working inside?
-        if sys.version_info.major == 2:
+        if sys.version_info[0] == 2:
             Prefs.st2 = True
             Prefs.st3 = False
         else:
