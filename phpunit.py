@@ -9,6 +9,7 @@ import time
 import sublime
 import sublime_plugin
 import threading
+import sys
 
 class Prefs:
     @staticmethod
@@ -23,6 +24,14 @@ class Prefs:
         Prefs.path_to_phpunit = settings.get('path_to_phpunit', False)
         Prefs.copy_env = settings.get('copy_env', True)
         Prefs.override_env = settings.get('override_env', {})
+
+        # which version of ST are we working inside?
+        if sys.version_info.major == 2:
+            Prefs.st2 = True
+            Prefs.st3 = False
+        else:
+            Prefs.st2 = False
+            Prefs.st3 = True
 
 Prefs.load()
 
@@ -100,7 +109,10 @@ class AsyncProcess(object):
         while True:
             data = self.proc.stdout.read().decode('utf-8')
             if data != "":
-                self.listener.append_data(data)
+                if Prefs.st2:
+                    sublime.set_timeout(functools.partial(self.listener.append_data, self.proc, data), 0)
+                else:
+                    self.listener.append_data(data)
             else:
                 self.proc.stdout.close()
                 self.stdout_complete = True
@@ -112,7 +124,10 @@ class AsyncProcess(object):
         while True:
             data = self.proc.stderr.read().decode('utf-8')
             if data != "":
-                self.listener.append_data(data)
+                if Prefs.st2:
+                    sublime.set_timeout(functools.partial(self.listener.append_data, self.proc, data), 0)
+                else:
+                    self.listener.append_data(data)
             else:
                 self.proc.stderr.close()
                 self.stderr_complete = True
