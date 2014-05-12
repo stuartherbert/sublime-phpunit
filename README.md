@@ -48,3 +48,5 @@ Contributions Welcome
 ---------------------
 
 Requests for features, and pull requests with patches, are most welcome :)
+
+Please make sure that your pull requests are against the 'develop' branch and not 'master'.
