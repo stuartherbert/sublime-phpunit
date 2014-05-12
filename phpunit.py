@@ -798,7 +798,7 @@ class PhpunitRunTestsCommand(PhpunitTextBase):
             test_file_to_open = self.find_test_file()
             tested_file_to_open = [self.view.file_name()]
 
-        if test_file_to_open is None or tested_file_to_open is None:
+        if test_file_to_open is None and tested_file_to_open is None:
             return False
 
         self.file_to_test = test_file_to_open[0]
