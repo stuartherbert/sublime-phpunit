@@ -1,17 +1,17 @@
 Sublime PHPUnit
 ===============
 
-This plugin adds PHPUnit support to Sublime Text 2.
+This plugin adds PHPUnit support to Sublime Text 2 & 3.
 
 Installation
 ------------
 
-Use Sublime Text 2's [Package Control](http://wbond.net/sublime_packages/package_control) (Preferences -> Package Control -> Install Package -> PHPUnit) to install this plugin.
+Use [Package Control](http://wbond.net/sublime_packages/package_control) (Preferences -> Package Control -> Install Package -> PHPUnit) to install this plugin.
 
-PHPUnit Support For Sublime Text 2
-----------------------------------
+PHPUnit Support For Sublime Text
+--------------------------------
 
-This plugin adds support for running PHPUnit tests from inside Sublime Text 2.
+This plugin adds support for running PHPUnit tests from inside Sublime Text.
 
 Right-click in the editor to:
 
@@ -48,3 +48,5 @@ Contributions Welcome
 ---------------------
 
 Requests for features, and pull requests with patches, are most welcome :)
+
+Please make sure that your pull requests are against the 'develop' branch and not 'master'.
