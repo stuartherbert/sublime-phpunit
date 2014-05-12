@@ -457,7 +457,7 @@ class ProjectFiles:
             return None
 
         # is the path root folder?
-        if  path == os.path.dirname(path):
+        if path == os.path.dirname(path):
             return None
 
         ProjectFiles.files[path] = []
