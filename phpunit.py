@@ -412,6 +412,10 @@ class ProjectFiles:
         if not os.path.exists(path):
             return None
 
+        # is the path root folder?
+        if  path == os.path.dirname(path):
+            return None
+
         ProjectFiles.files[path] = []
 
         # how long will this take? let's find out
@@ -679,7 +683,7 @@ class ActiveWindow(ActiveFile):
 
     def is_php_buffer(self):
         ext = os.path.splitext(self.file_name())[1]
-        if ext == 'php':
+        if ext == '.php':
             return True
         return False
 
