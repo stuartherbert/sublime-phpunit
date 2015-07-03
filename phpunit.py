@@ -245,8 +245,15 @@ class PhpunitCommand(CommandBase):
     def run(self, configfile, testfile='', classname=''):
         self.show_empty_output()
 
+        if os.path.isdir(configfile):
+            folder = configfile
+        else:
+            folder = os.path.dirname(configfile)
+
         if Prefs.path_to_phpunit is not False:
             args = [Prefs.path_to_phpunit]
+        elif os.path.isfile(folder + "/vendor/bin/phpunit"):
+            args = ["vendor/bin/phpunit"]
         else:
             # find where PHPUnit is installed
             args = ["phpunit"]
@@ -265,11 +272,6 @@ class PhpunitCommand(CommandBase):
             args.append(classname)
         if testfile != '':
             args.append(testfile)
-
-        if os.path.isdir(configfile):
-            folder = configfile
-        else:
-            folder = os.path.dirname(configfile)
 
         self.append_data("# Running in folder: " + folder + "\n")
         self.append_data("$ " + ' '.join(args) + "\n")
