@@ -5,11 +5,11 @@ import functools
 import os
 import re
 import subprocess
-import time
 import sublime
 import sublime_plugin
 import threading
 import sys
+
 
 class Prefs:
     @staticmethod
