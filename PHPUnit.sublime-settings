@@ -9,5 +9,6 @@
     "copy_env": true,
     "override_env": {},
     "debug": 0,
-    "run_on_save": false
+    "run_on_save": false,
+    "context_menu": true
 }

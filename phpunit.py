@@ -26,6 +26,7 @@ class Prefs:
         Prefs.copy_env = settings.get('copy_env', True)
         Prefs.override_env = settings.get('override_env', {})
         Prefs.run_on_save = settings.get('run_on_save', False)
+        Prefs.context_menu = settings.get('context_menu', True)
 
         # which version of ST are we working inside?
         if sys.version_info[0] == 2:
@@ -825,6 +826,10 @@ class PhpunitRunTestsCommand(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        # has the user switched off context-menu support?
+        if not Prefs.context_menu:
+            return False
+
         if self.needs_enabling():
             self.is_enabled()
 
@@ -872,6 +877,10 @@ class PhpunitOpenTestClassCommand(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        # has the user switched off context-menu support?
+        if not Prefs.context_menu:
+            return False
+
         if self.needs_enabling():
             self.is_enabled()
 
@@ -921,6 +930,10 @@ class PhpunitOpenClassBeingTestedCommand(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        # has the user switched off context-menu support?
+        if not Prefs.context_menu:
+            return False
+
         if self.needs_enabling():
             self.is_enabled()
 
@@ -968,6 +981,10 @@ class PhpunitToggleClassTestClassCommand(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        # has the user switched off context-menu support?
+        if not Prefs.context_menu:
+            return False
+
         if self.needs_enabling():
             self.is_enabled()
 
@@ -999,6 +1016,10 @@ class PhpunitOpenPhpunitXmlCommand(PhpunitTextBase):
         return 'Open phpunit.xml'
 
     def is_visible(self):
+        # has the user switched off context-menu support?
+        if not Prefs.context_menu:
+            return False
+
         if self.needs_enabling():
             self.is_enabled()
 
@@ -1055,6 +1076,10 @@ class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
         return self.is_phpunitxml()
 
     def is_visible(self):
+        # has the user switched off context-menu support?
+        if not Prefs.context_menu:
+            return False
+
         if self.needs_enabling():
             self.is_enabled()
 
@@ -1109,6 +1134,10 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
         return True
 
     def is_visible(self):
+        # has the user switched off context-menu support?
+        if not Prefs.context_menu:
+            return False
+
         if self.needs_enabling():
             self.is_enabled()
 
@@ -1124,6 +1153,10 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
     def is_visible(self):
         Msgs.operation = "PhpunitNotAvailableCommand.is_visible"
         Msgs.debug_msg('called')
+
+        # has the user switched off context-menu support?
+        if not Prefs.context_menu:
+            return False
 
         if not self.has_project_open():
             return True
@@ -1150,6 +1183,28 @@ class PhpunitNotAvailableCommand(PhpunitTextBase):
         return self.cannot_find_xml()
 
 
+class PhpunitContextMenuDisabledCommand(PhpunitTextBase):
+    def is_visible(self):
+        Msgs.operation = "PhpunitContextMenuDisabledCommand.is_visible"
+        Msgs.debug_msg('called')
+
+        if not Prefs.context_menu:
+            return True
+        return False
+
+    def is_enabled(self):
+        Msgs.operation = "PhpunitContextMenuDisabledCommand.is_enabled"
+        Msgs.debug_msg('called')
+
+        return False
+
+    def description(self):
+        Msgs.operation = "PhpunitContextMenuDisabledCommand.description"
+        Msgs.debug_msg('called')
+
+        return "Context menu has been disabled in prefs file"
+
+
 class PhpunitFlushCacheCommand(PhpunitTextBase):
     def is_enabled(self):
         Msgs.operation = "PhpunitFlushCacheCommand.is_enabled"
@@ -1169,6 +1224,10 @@ class PhpunitFlushCacheCommand(PhpunitTextBase):
         return False
 
     def is_visible(self):
+        # has the user switched off context-menu support?
+        if not Prefs.context_menu:
+            return False
+
         if self.needs_enabling():
             self.is_enabled()
 

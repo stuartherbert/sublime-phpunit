@@ -11,6 +11,7 @@
             { "command": "phpunit_open_phpunit_xml" },
             { "command": "phpunit_run_this_phpunit_xml" },
             { "command": "phpunit_run_all_tests" },
+            { "command": "phpunit_context_menu_disabled" },
             { "command": "phpunit_not_available" }
          ]
     }
