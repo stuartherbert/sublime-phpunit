@@ -44,6 +44,26 @@ To use any of the snippets, simply type the name of the snippet, then press the 
 * __phpunit-test__: create a new test method inside your TestCase class
 * __phpunit-testcase__: create a new TestCase class to put your tests inside
 
+
+Keyboard Shortcuts
+------------------
+
+It is also possible to run the unit tests just by hitting a key combo.
+This is done by adding a new row to your own personal "Key bindings - User" which can be found in the preferences menu.
+
+    { "keys": ["ctrl+tab"], "command": "phpunit_run_all_tests" }
+  
+Other available commands:
+
+* phpunit\_flush\_cache
+* phpunit\_run\_tests
+* phpunit\_open\_test\_class
+* phpunit\_open\_class\_being\_tested
+* phpunit\_toggle\_class\_test\_class
+* phpunit\_open\_phpunit\_xml
+* phpunit\_run\_all\_tests
+* phpunit\_run\_this\_phpunit\_xml
+
 Contributions Welcome
 ---------------------
 
