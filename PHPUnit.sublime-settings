@@ -8,5 +8,6 @@
     "phpunit_additional_args": {},
     "copy_env": true,
     "override_env": {},
-    "debug": 1
+    "debug": 0,
+    "run_on_save": false
 }

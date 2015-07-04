@@ -105,7 +105,6 @@ class AsyncProcess(object):
         if self.proc.stderr:
             threading.Thread(target=self.read_stderr).start()
 
-
     def read_stdout(self):
         while True:
             data = self.proc.stdout.read().decode('utf-8')
@@ -1208,3 +1207,50 @@ class RunPhpunitOnXmlCommand(PhpunitWindowBase):
 
     def description(self, paths=[]):
         return 'Run PHPUnit Using This XML File...'
+
+
+class ActiveEvent(ActiveView):
+    def __init__(self, view):
+        self.view = view
+
+
+class RunPhpunitOnSave(sublime_plugin.EventListener):
+    def on_post_save(self, view):
+        Msgs.debug_msg("on_post_save() called")
+        e = ActiveEvent(view)
+        if not self.is_enabled(e):
+            return
+        self.run(e)
+
+    def run(self, e):
+        Msgs.operation = "PhpunitRunTestsClassCommand.run"
+
+        cmd = PhpunitCommand(e.view.window(), None)
+        cmd.run(self.path_to_config, self.file_to_test)
+
+        return None
+
+    def is_enabled(self, e):
+        self.file_to_test = None
+        self.path_to_config = None
+
+        if not e.has_project_open():
+            return False
+        if not e.is_php_buffer():
+            return False
+
+        if e.is_test_buffer() or e.is_tests_buffer():
+            test_file_to_open = [e.view.file_name()]
+            tested_file_to_open = e.find_tested_file()
+        else:
+            test_file_to_open = e.find_test_file()
+            tested_file_to_open = [e.view.file_name()]
+
+        if test_file_to_open is None and tested_file_to_open is None:
+            return False
+
+        self.file_to_test = test_file_to_open[0]
+        self.path_to_config = e.findPhpunitXml(self.file_to_test)
+        if self.path_to_config is None:
+            return False
+        return True
