@@ -18,6 +18,7 @@ class Prefs:
         Prefs.folder_search_hints = settings.get('top_folder_hints', [])
         Prefs.folder_exclusions = settings.get('folder_exclusions', [])
         Prefs.max_search_secs = settings.get('max_search_secs', 2)
+        Prefs.phpunit_xml_aliases = settings.get('phpunit_xml_aliases', ["phpunit.xml", "phpunit.xml.dist"])
         Prefs.phpunit_xml_location_hints = settings.get('phpunit_xml_location_hints', [])
         Prefs.phpunit_additional_args = settings.get('phpunit_additional_args', {})
         Prefs.debug = settings.get('debug', 0)
@@ -542,7 +543,7 @@ class ActiveFile:
             Msgs.debug_msg("Buffer is not phpunit.xml; is not a real file")
             return False
         filename = os.path.basename(filename)
-        if filename == 'phpunit.xml' or filename == 'phpunit.xml.dist':
+        if filename in Prefs.phpunit_xml_aliases:
             Msgs.debug_msg("Buffer is a phpunit.xml file")
             return True
         Msgs.debug_msg("Buffer is not a phpunit.xml file")
@@ -567,7 +568,7 @@ class ActiveFile:
         Msgs.debug_msg("Project's top folder is: " + self.top_folder())
 
         # what are we looking for?
-        files_to_find = ['phpunit.xml', 'phpunit.xml.dist']
+        files_to_find = Prefs.phpunit_xml_aliases
 
         return FindFiles.find(self.top_folder(), search_from, files_to_find)
 
