@@ -617,7 +617,7 @@ class ActiveView(ActiveFile):
         folders = self.view.window().folders()
         path = os.path.dirname(self.file_name())
         oldpath = ''
-        while not path in folders and path != oldpath and not os.path.isdir(path + "/.git"):
+        while not path in folders and path != oldpath and not self.top_level_folder_hints(path):
             oldpath = path
             path = os.path.dirname(path)
         if path == oldpath:
@@ -629,6 +629,13 @@ class ActiveView(ActiveFile):
                 path = os.path.dirname(path)
         Msgs.debug_msg("Top folder for this project is: " + path)
         return path
+
+    def top_level_folder_hints(self, folder):
+        if os.path.isfile(folder + "/composer.json"):
+            return True
+        if os.path.isdir(folder + "/.git"):
+            return True
+        return False
 
     def find_tested_file(self):
         Msgs.debug_msg("Looking for tested file")
