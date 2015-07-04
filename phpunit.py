@@ -631,10 +631,10 @@ class ActiveView(ActiveFile):
         return path
 
     def top_level_folder_hints(self, folder):
-        if os.path.isfile(folder + "/composer.json"):
-            return True
-        if os.path.isdir(folder + "/.git"):
-            return True
+        hints = Prefs.folder_search_hints
+        for hint in hints:
+            if os.path.exists(os.path.join(folder, hint)):
+                return True
         return False
 
     def find_tested_file(self):
