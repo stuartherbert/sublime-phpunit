@@ -25,6 +25,7 @@ class Prefs:
         Prefs.path_to_phpunit = settings.get('path_to_phpunit', False)
         Prefs.copy_env = settings.get('copy_env', True)
         Prefs.override_env = settings.get('override_env', {})
+        Prefs.run_on_save = settings.get('run_on_save', False)
 
         # which version of ST are we working inside?
         if sys.version_info[0] == 2:
@@ -1217,6 +1218,10 @@ class ActiveEvent(ActiveView):
 class RunPhpunitOnSave(sublime_plugin.EventListener):
     def on_post_save(self, view):
         Msgs.debug_msg("on_post_save() called")
+        # has the user switched this feature on?
+        if not Prefs.run_on_save:
+            return
+        # has a viable buffer just been saved?
         e = ActiveEvent(view)
         if not self.is_enabled(e):
             return
