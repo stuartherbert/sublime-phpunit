@@ -1,7 +1,7 @@
 {
     "path_to_phpunit": false,
     "top_folder_hints": [ "composer.json", ".git", ".hg" ],
-    "folder_exclusions": [ "branches", "nbproject", "tags", "vendor", ".git", ".svn", ".hg" ],
+    "folder_exclusions": [ "branches", "nbproject", "tags", "vendor", ".git", ".svn", ".hg", "logs" ],
     "phpunit_xml_aliases": [ "phpunit.xml", "phpunit.xml.dist" ],
     "max_search_secs": 2,
     "phpunit_xml_location_hints": [ "app" ],
