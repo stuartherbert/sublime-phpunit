@@ -558,6 +558,7 @@ class ActiveFile:
 
     def findPhpunitXml(self, search_from):
         Msgs.debug_msg("Looking for phpunit.xml of some kind")
+        Msgs.debug_msg("Project's top folder is: " + self.top_folder())
 
         # what are we looking for?
         files_to_find = ['phpunit.xml', 'phpunit.xml.dist']
@@ -616,7 +617,7 @@ class ActiveView(ActiveFile):
         folders = self.view.window().folders()
         path = os.path.dirname(self.file_name())
         oldpath = ''
-        while not path in folders and path != oldpath:
+        while not path in folders and path != oldpath and not os.path.isdir(path + "/.git"):
             oldpath = path
             path = os.path.dirname(path)
         if path == oldpath:
