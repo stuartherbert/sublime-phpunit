@@ -470,8 +470,14 @@ class ProjectFiles:
         # we're going to build up a cache of the files inside this project
         i = 0
         for root, dirs, files in os.walk(path):
+            # skip over sub-folders that we do not want to visit
+            for dirname in dirs:
+                if dirname in Prefs.folder_exclusions:
+                    dirs.remove(dirname)
+            # add the files that we have
             for name in files:
                 ProjectFiles.files[path].append(os.path.join(root, name))
+                # Msgs.debug_msg("  -- found file " + os.path.join(root, name))
                 i = i + 1
 
         end = datetime.datetime.now()
