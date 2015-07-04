@@ -244,13 +244,13 @@ class CommandBase:
 
 
 class PhpunitCommand(CommandBase):
-    def run(self, configfile, testfile='', classname=''):
+    def run(self, folder, configfile, testfile='', classname=''):
         self.show_empty_output()
 
-        if os.path.isdir(configfile):
-            folder = configfile
-        else:
-            folder = os.path.dirname(configfile)
+        # if os.path.isdir(configfile):
+        #     folder = configfile
+        # else:
+        #     folder = os.path.dirname(configfile)
 
         if Prefs.path_to_phpunit is not False:
             args = [Prefs.path_to_phpunit]
@@ -267,15 +267,28 @@ class PhpunitCommand(CommandBase):
                 arg += "=" + value
             args.append(arg)
 
-        if os.path.isfile(configfile) > 0:
+        # remove the folder from the configfile
+        if configfile.startswith(folder):
+            configfile = configfile[len(folder):]
+            if configfile[0] == "/":
+                configfile = configfile[1:]
+
+        # remove the folder from the testfile
+        if testfile.startswith(folder):
+            testfile = testfile[len(folder):]
+            if testfile[0] == "/":
+                testfile = testfile[1:]
+
+        if os.path.isfile(os.path.join(folder, configfile)):
             args.append("-c")
-            args.append(os.path.basename(configfile))
+            args.append(configfile)
         if classname != '':
             args.append(classname)
         if testfile != '':
             args.append(testfile)
 
         self.append_data("# Running in folder: " + folder + "\n")
+        self.append_data("# Configfile is: " + configfile + "\n")
         self.append_data("$ " + ' '.join(args) + "\n")
         self.start_async("Running PHPUnit", args, folder)
 
@@ -505,6 +518,8 @@ class ProjectFiles:
 
     @staticmethod
     def expired(when):
+        if when is None:
+            return True
         if when < ProjectFiles.last_built_time:
             return True
         return False
@@ -622,6 +637,10 @@ class ActiveView(ActiveFile):
         return self.view.file_name()
 
     def top_folder(self):
+        # have we done this before?
+        if hasattr(self, 'top_folder_path'):
+            return self.top_folder_path
+
         folders = self.view.window().folders()
         path = os.path.dirname(self.file_name())
         oldpath = ''
@@ -636,6 +655,7 @@ class ActiveView(ActiveFile):
                 oldpath = path
                 path = os.path.dirname(path)
         Msgs.debug_msg("Top folder for this project is: " + path)
+        self.top_folder_path = path
         return path
 
     def top_level_folder_hints(self, folder):
@@ -784,7 +804,7 @@ class PhpunitRunTestsCommand(PhpunitTextBase):
         Msgs.operation = "PhpunitRunTestsClassCommand.run"
 
         cmd = PhpunitCommand(self.view.window(), edit)
-        cmd.run(self.path_to_config, self.file_to_test)
+        cmd.run(self.top_folder(), self.path_to_config, self.file_to_test)
 
         return None
 
@@ -1064,7 +1084,7 @@ class PhpunitRunThisPhpunitXmlCommand(PhpunitTextBase):
         Msgs.operation = "PhpunitRunThisPhpunitXmlCommand.run"
         phpunit_xml_file = self.file_name()
         cmd = PhpunitCommand(self.view.window(), edit)
-        cmd.run(phpunit_xml_file)
+        cmd.run(self.top_folder(), phpunit_xml_file)
 
     def is_enabled(self):
         Msgs.operation = "PhpunitRunThisPhpunitXmlCommand.is_enabled"
@@ -1101,7 +1121,7 @@ class PhpunitRunAllTestsCommand(PhpunitTextBase):
         self.edit = edit
         Msgs.operation = "PhpunitRunAllTestsCommand.run"
         cmd = PhpunitCommand(self.view.window(), edit)
-        cmd.run(self.path_to_config)
+        cmd.run(self.top_folder(), self.path_to_config)
 
     def description(self):
         return 'Run All Unit Tests...'
@@ -1250,7 +1270,7 @@ class RunPhpunitOnXmlCommand(PhpunitWindowBase):
         self.determine_filename(paths)
         filename = self.file_name()
         cmd = PhpunitCommand(self.window)
-        cmd.run(filename)
+        cmd.run(self.top_folder(), filename)
 
     def is_enabled(self, paths=[]):
         Msgs.operation = "RunPhpunitOnXmlCommand.is_enabled"
@@ -1290,7 +1310,7 @@ class RunPhpunitOnSave(sublime_plugin.EventListener):
         Msgs.operation = "PhpunitRunTestsClassCommand.run"
 
         cmd = PhpunitCommand(e.view.window(), None)
-        cmd.run(self.path_to_config, self.file_to_test)
+        cmd.run(self.top_folder(), self.path_to_config, self.file_to_test)
 
         return None
 
