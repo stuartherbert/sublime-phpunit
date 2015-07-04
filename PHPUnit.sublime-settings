@@ -1,11 +1,11 @@
 {
     "path_to_phpunit": false,
     "top_folder_hints": [ "composer.json", ".git", ".hg" ],
-    "folder_exclusions": [ "branches", "nbproject", "tags", "vendor" ],
+    "folder_exclusions": [ "branches", "nbproject", "tags", "vendor", ".git", ".svn", ".hg" ],
     "max_search_secs": 2,
     "phpunit_xml_location_hints": [ "app" ],
     "phpunit_additional_args": {},
     "copy_env": true,
     "override_env": {},
-    "debug": 0
+    "debug": 1
 }
