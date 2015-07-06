@@ -695,9 +695,11 @@ class ActiveView(ActiveFile):
     def find_test_file(self):
         Msgs.debug_msg("Looking for test file")
         classname = self.determine_full_class_name()
-        Msgs.debug_msg("classname is: " + classname)
         if classname is None:
+            Msgs.debug_msg("I don't know what the classname is :(")
             return None
+
+        Msgs.debug_msg("classname is: " + classname)
 
         classname = classname + 'Test'
         filename = classname + '.php'
@@ -831,12 +833,10 @@ class PhpunitRunTestsCommand(PhpunitTextBase):
 
         if self.is_test_buffer() or self.is_tests_buffer():
             test_file_to_open = [self.view.file_name()]
-            tested_file_to_open = self.find_tested_file()
         else:
             test_file_to_open = self.find_test_file()
-            tested_file_to_open = [self.view.file_name()]
 
-        if test_file_to_open is None and tested_file_to_open is None:
+        if test_file_to_open is None:
             return False
 
         self.file_to_test = test_file_to_open[0]
