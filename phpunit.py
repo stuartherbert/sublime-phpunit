@@ -509,7 +509,7 @@ class ProjectFiles:
             Msgs.debug_msg('-- no cache for ' + top_folder)
             return None
 
-        result = [x for x in ProjectFiles.files[top_folder] if filename in x]
+        result = [x for x in ProjectFiles.files[top_folder] if x.endswith(filename)]
         if len(result) == 0:
             Msgs.debug_msg('-- none found')
             return None
