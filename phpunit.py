@@ -1227,6 +1227,9 @@ class PhpunitContextMenuDisabledCommand(PhpunitTextBase):
 
 class PhpunitFlushCacheCommand(PhpunitTextBase):
     def is_enabled(self):
+        if not self.needs_enabling():
+            return False
+
         Msgs.operation = "PhpunitFlushCacheCommand.is_enabled"
         Msgs.debug_msg('called')
 
