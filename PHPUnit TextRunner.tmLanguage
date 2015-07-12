@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<!--
+See https://github.com/sebastianbergmann/phpunit/blob/0b78eddd0519dd9bf7c35359287fa6b0adb17391/src/TextUI/ResultPrinter.php#L344
+-->
+<dict>
+    <key>name</key>
+    <string>PHPUnit TextRunner</string>
+    <key>scopeName</key>
+    <string>text.phpunit-textrunner</string>
+    <key>patterns</key>
+    <array>
+
+        <!--
+            Failure diffs
+        -->
+
+        <dict>
+            <key>include</key>
+            <string>source.diff</string>
+        </dict>
+
+        <!--
+            Progress
+        -->
+
+        <dict>
+            <key>begin</key>
+            <string>^(?=(\.|E|F|I|R|S)+\s+)</string>
+            <key>end</key>
+            <string>\s+(\d+\s+\/\s+\d+\s+\(\s*\d+\%\))?$</string>
+            <key>patterns</key>
+            <array>
+                <dict>
+                    <key>match</key>
+                    <string>\.</string>
+                    <key>name</key>
+                    <string>test.progress.success.phpunit-textrunner</string>
+                </dict>
+                <dict>
+                    <key>match</key>
+                    <string>E</string>
+                    <key>name</key>
+                    <string>test.progress.error.phpunit-textrunner</string>
+                </dict>
+                <dict>
+                    <key>match</key>
+                    <string>F</string>
+                    <key>name</key>
+                    <string>test.progress.failure.phpunit-textrunner</string>
+                </dict>
+                <dict>
+                    <key>match</key>
+                    <string>I</string>
+                    <key>name</key>
+                    <string>test.progress.incomplete.phpunit-textrunner</string>
+                </dict>
+                <dict>
+                    <key>match</key>
+                    <string>R</string>
+                    <key>name</key>
+                    <string>test.progress.risky.phpunit-textrunner</string>
+                </dict>
+                <dict>
+                    <key>match</key>
+                    <string>S</string>
+                    <key>name</key>
+                    <string>test.progress.skipped.phpunit-textrunner</string>
+                </dict>
+            </array>
+        </dict>
+
+        <!--
+            No tests executed!
+        -->
+
+        <dict>
+            <key>match</key>
+            <string>^(?:\e\[[0-9;]+m)?No tests executed\!(?:\e\[[0-9;]+m)?$</string>
+            <key>name</key>
+            <string>test.footer.none-executed.phpunit-textrunner</string>
+        </dict>
+
+        <!--
+            OK
+        -->
+
+        <dict>
+            <key>match</key>
+            <string>^(?:\e\[[0-9;]+m)?OK \(\d+ test(?:s)?, \d+ assertion(?:s)?\)(?:\e\[[0-9;]+m)?$</string>
+            <key>name</key>
+            <string>test.footer.ok.phpunit-textrunner</string>
+        </dict>
+
+        <!--
+            OK, but incomplete, skipped, or risky tests!
+        -->
+        <dict>
+            <key>match</key>
+            <string>^(?:\e\[[0-9;]+m)?OK, but incomplete, skipped, or risky tests\!(?:\e\[[0-9;]+m)?$</string>
+            <key>name</key>
+            <string>test.footer.ok-but-incomplete-skipped-or-risky.phpunit-textrunner</string>
+        </dict>
+        <dict>
+            <key>match</key>
+            <string>^(?:\e\[[0-9;]+m)?Tests\: \d+, Assertions\: \d+(?:, (?:Incomplete|Skipped|Risky)\: \d+)+\.(?:\e\[[0-9;]+m)?$</string>
+            <key>name</key>
+            <string>test.footer.ok-but-incomplete-skipped-or-risky.phpunit-textrunner</string>
+        </dict>
+
+        <!--
+            FAILURES!
+        -->
+
+        <dict>
+            <key>match</key>
+            <string>^(?:\e\[[0-9;]+m)?FAILURES\!(?:\e\[[0-9;]+m\s*)?$</string>
+            <key>name</key>
+            <string>test.footer.fail.phpunit-textrunner</string>
+        </dict>
+        <dict>
+            <key>match</key>
+            <string>^(?:\e\[[0-9;]+m)?Tests\: \d+, Assertions\: \d+(?:, (?:Errors|Failures|Skipped|Incomplete|Risky)\: \d+)+\.(?:\e\[[0-9;]+m)?$</string>
+            <key>name</key>
+            <string>test.footer.fail.phpunit-textrunner</string>
+        </dict>
+
+        <!--
+            BOILERPLATE
+        -->
+        <dict>
+            <key>match</key>
+            <string>^(#.*)$</string>
+            <key>name</key>
+            <string>comment.line.number-sign.phpunit-textrunner</string>
+        </dict>
+        <dict>
+            <key>match</key>
+            <string>^(\$.*)$</string>
+            <key>name</key>
+            <string>comment.line.number-sign.phpunit-textrunner</string>
+        </dict>
+    </array>
+</dict>
+</plist>

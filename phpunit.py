@@ -68,85 +68,6 @@ class InsertViewCommand(sublime_plugin.TextCommand):
         self.view.insert(edit, self.view.size(), string)
 
 
-# the AsyncProcess class has been cribbed from:
-# https://github.com/maltize/sublime-text-2-ruby-tests/blob/master/run_ruby_test.py
-
-
-class AsyncProcess(object):
-    stdout_complete = False
-    stderr_complete = False
-
-    def __init__(self, cmd, cwd, listener):
-        self.listener = listener
-        if Prefs.copy_env:
-            env = os.environ.copy()
-
-            # add 'PWD' to the environment, for those folks who use it
-            # in their tests
-            # env['PWD'] = cwd
-        else:
-            Msgs.debug_msg("Using EMPTY environment!")
-            env = {}
-
-        if Prefs.override_env:
-            Msgs.debug_msg("Updating environment with " + ' '.join(Prefs.override_env))
-            env.update(Prefs.override_env)
-
-        Msgs.debug_msg("DEBUG_EXEC: " + ' '.join(cmd))
-
-        if os.name == 'nt':
-            # we have to run PHPUnit via the shell to get it to work for everyone on Windows
-            # no idea why :(
-            # I'm sure this will prove to be a terrible idea
-            self.proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
-        else:
-            # Popen works properly on OSX and Linux
-            self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
-        if self.proc.stdout:
-            threading.Thread(target=self.read_stdout).start()
-        if self.proc.stderr:
-            threading.Thread(target=self.read_stderr).start()
-
-    def read_stdout(self):
-        while True:
-            data = self.proc.stdout.read().decode('utf-8')
-            if data != "":
-#                if Prefs.st2:
-#                    sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
-#                else:
-                self.listener.append_data(data)
-            else:
-                self.proc.stdout.close()
-                self.stdout_complete = True
-                self.listener.is_running = False
-                self.is_process_complete()
-                break
-
-    def read_stderr(self):
-        while True:
-            data = self.proc.stderr.read().decode('utf-8')
-            if data != "":
-#                if Prefs.st2:
-#                    sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
-#                else:
-                self.listener.append_data(data)
-            else:
-                self.proc.stderr.close()
-                self.stderr_complete = True
-                self.listener.is_running = False
-                self.is_process_complete()
-                break
-
-    def is_process_complete(self):
-        if self.stdout_complete and self.stderr_complete:
-            data = "\n--- PROCESS COMPLETE ---"
-#            if Prefs.st2:
-#                sublime.set_timeout(functools.partial(self.listener.append_data, data), 0)
-#            else:
-            self.listener.append_data(data)
-            self.proc.wait()
-
-
 class OutputView(object):
     def __init__(self, name, window, edit=None):
         self.output_name = name
@@ -156,7 +77,7 @@ class OutputView(object):
 
     def show_output(self):
         self.ensure_output_view()
-        self.window.run_command("show_panel", {"panel": "output." + self.output_name})
+        self.window.run_command("show_panel", {"panel": self.output_name})
 
     def show_empty_output(self):
         self.ensure_output_view()
@@ -166,6 +87,16 @@ class OutputView(object):
     def ensure_output_view(self):
         if not hasattr(self, 'output_view'):
             self.output_view = self.window.get_output_panel(self.output_name)
+            panel_settings = self.output_view.settings()
+            panel_settings.set('syntax', 'Packages/PHPUnit/PHPUnit TextRunner.tmLanguage')
+            panel_settings.set('rulers', [])
+            panel_settings.set('gutter', False)
+            panel_settings.set('scroll_past_end', False)
+            panel_settings.set('draw_centered', False)
+            panel_settings.set('line_numbers', False)
+            panel_settings.set('spell_check', False)
+            panel_settings.set('word_wrap', True)
+            panel_settings.set('color_scheme', 'Packages/phpunit/color-schemes/phix-dark.hidden-tmTheme')
 
     def clear_output_view(self):
         self.ensure_output_view()
@@ -179,7 +110,7 @@ class OutputView(object):
         data = re.sub('\[(\d+)m', '', data)
 
         self.output_view.set_read_only(False)
-        self.output_view.run_command('insert_view', { 'string': data })
+        self.output_view.run_command('insert_view', {'string': data})
         self.output_view.show(self.output_view.size())
         self.output_view.set_read_only(True)
 
@@ -220,13 +151,13 @@ class CommandBase:
 
     def show_output(self):
         if not hasattr(self, 'output_view'):
-            self.output_view = CompatibilityOutputView('phpunit', self.window, self.edit)
+            self.output_view = CompatibilityOutputView('exec', self.window, self.edit)
 
         self.output_view.show_output()
 
     def show_empty_output(self):
         if not hasattr(self, 'output_view'):
-            self.output_view = CompatibilityOutputView('phpunit', self.window, self.edit)
+            self.output_view = CompatibilityOutputView('exec', self.window, self.edit)
 
         self.output_view.clear_output_view()
         self.output_view.show_output()
@@ -290,7 +221,13 @@ class PhpunitCommand(CommandBase):
         self.append_data("# Running in folder: " + folder + "\n")
         self.append_data("# Configfile is: " + configfile + "\n")
         self.append_data("$ " + ' '.join(args) + "\n")
-        self.start_async("Running PHPUnit", args, folder)
+        self.window.run_command('exec', {
+            'cmd': args,
+            'working_dir': folder,
+            'file_regex': '([a-zA-Z0-9\\.\\/_-]+)(?: on line |\:)([0-9]+)$',
+            'shell': True,
+            'quiet': False,
+        })
 
 
 class FoundFiles:
