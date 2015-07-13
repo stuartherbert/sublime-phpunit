@@ -211,6 +211,12 @@ class PhpunitCommand(CommandBase):
         if os.path.isfile(os.path.join(folder, configfile)):
             args.append("-c")
             args.append(configfile)
+
+        # determine the unit test to run
+        if classname == '' and testfile != '':
+            classname = os.path.basename(testfile)
+            classname = os.path.splitext(classname)[0]
+
         if classname != '':
             args.append(classname)
         if testfile != '':
@@ -220,7 +226,7 @@ class PhpunitCommand(CommandBase):
         self.append_data("# Configfile is: " + configfile + "\n")
         self.append_data("$ " + ' '.join(args) + "\n")
         self.window.run_command('exec', {
-            'cmd': args,
+            'cmd': ' '.join(args),
             'working_dir': folder,
             'file_regex': '([a-zA-Z0-9\\.\\/_-]+)(?: on line |\:)([0-9]+)$',
             'shell': True,
