@@ -130,13 +130,13 @@ See https://github.com/sebastianbergmann/phpunit/blob/0b78eddd0519dd9bf7c3535928
         -->
         <dict>
             <key>match</key>
-            <string>^(#.*)$</string>
+            <string>^(# .*)$</string>
             <key>name</key>
             <string>comment.line.number-sign.phpunit-textrunner</string>
         </dict>
         <dict>
             <key>match</key>
-            <string>^(\$.*)$</string>
+            <string>^(\$ .*)$</string>
             <key>name</key>
             <string>comment.line.number-sign.phpunit-textrunner</string>
         </dict>
