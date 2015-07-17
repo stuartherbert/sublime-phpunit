@@ -94,7 +94,7 @@ class OutputView(object):
             panel_settings.set('line_numbers', False)
             panel_settings.set('spell_check', False)
             panel_settings.set('word_wrap', True)
-            panel_settings.set('color_scheme', 'Packages/phpunit/color-schemes/phix-dark.hidden-tmTheme')
+            panel_settings.set('color_scheme', 'Packages/PHPUnit/color-schemes/phix-dark.hidden-tmTheme')
 
     def clear_output_view(self):
         self.ensure_output_view()
